@@ -1,0 +1,7 @@
+{
+  "name": "AGP Dobby Agent",
+  "description": "A high-utility agent powered by Dobby Unhinged LLaMA 3 70B via Fireworks API",
+  "api_url": "https://<your-deployment-url>/agent",
+  "streaming": false,
+  "version": "1.0.0"
+}

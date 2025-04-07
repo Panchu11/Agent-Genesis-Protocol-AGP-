@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: agp-dobby-unhinged
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
+    envVars:
+      - key: FIREWORKS_API_KEY
+        value: fw_3ZXXr9SL3uJDwVZR6gpEPw8n
