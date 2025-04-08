@@ -1,6 +1,6 @@
-import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
 import requests
 from dotenv import load_dotenv
 
@@ -27,23 +27,26 @@ def chat():
     }
 
     data = {
-        "model": "accounts/fireworks/models/dobby-unhinged-llama-v3-70b",
-        "prompt": f"User: {user_input}\nAgent:",
-        "max_tokens": 300,
-        "temperature": 0.7,
+        "model": "accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new",
+        "messages": [{"role": "user", "content": user_input}],
+        "temperature": 0.7
     }
 
     response = requests.post(
-        "https://api.fireworks.ai/inference/v1/completions",
+        "https://api.fireworks.ai/inference/v1/chat/completions",
         headers=headers,
         json=data
     )
 
     if response.status_code == 200:
         result = response.json()
-        return jsonify({"output": result["choices"][0]["text"].strip()})
+        reply = result["choices"][0]["message"]["content"]
+        return jsonify({"output": reply})
     else:
-        return jsonify({"error": "Fireworks API call failed", "details": response.text}), 500
+        return jsonify({
+            "error": "Fireworks API call failed",
+            "details": response.text
+        }), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860)
