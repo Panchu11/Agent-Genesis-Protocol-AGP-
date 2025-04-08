@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
 import requests
@@ -13,7 +13,7 @@ FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 
 @app.route("/", methods=["GET"])
 def home():
-    return "AGP is Live 🚀"
+    return render_template("index.html")
 
 @app.route("/chat", methods=["POST"])
 def chat():
