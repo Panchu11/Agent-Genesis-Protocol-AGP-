@@ -101,6 +101,15 @@
       background: #eee;
       color: #111;
     }
+
+    .traits-box {
+      margin-top: 20px;
+      background: #1c1c1c;
+      border-radius: 10px;
+      padding: 15px;
+      font-size: 14px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -116,6 +125,11 @@
     </form>
 
     <div class="response-box" id="response-box" style="display:none;"></div>
+    <div class="traits-box" id="traits-box"></div>
+
+    <div style="margin-top: 20px;">
+      <button onclick="mutateAgent()">🧬 Mutate Agent</button>
+    </div>
 
     <div class="footer">
       Powered by <strong>Sentient</strong> 🤖 | Built by <strong>Panchu</strong>
@@ -126,6 +140,7 @@
     const form = document.getElementById("chat-form");
     const input = document.getElementById("user-input");
     const box = document.getElementById("response-box");
+    const traitsBox = document.getElementById("traits-box");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -150,7 +165,16 @@
       document.body.classList.toggle("dark-mode");
     }
 
-    // Allow pressing Enter to submit
+    async function mutateAgent() {
+      const res = await fetch("/mutate", { method: "POST" });
+      const data = await res.json();
+      traitsBox.style.display = "block";
+      traitsBox.innerHTML = `
+        <strong>🧬 Mutated Agent Traits:</strong><br><br>
+        <ul>${data.mutations_applied.map(t => `<li>${t}</li>`).join("")}</ul>
+      `;
+    }
+
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") form.dispatchEvent(new Event("submit"));
     });
