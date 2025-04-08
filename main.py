@@ -1,7 +1,10 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -24,7 +27,7 @@ def chat():
     }
 
     data = {
-        "model": "accounts/fireworks/models/dobby-unhinged-llama-3-70b",
+        "model": "accounts/fireworks/models/dobby-unhinged-llama-v3-70b",
         "prompt": f"User: {user_input}\nAgent:",
         "max_tokens": 300,
         "temperature": 0.7,

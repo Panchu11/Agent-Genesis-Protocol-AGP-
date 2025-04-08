@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent Genesis Protocol (AGP)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #f1f1f1;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 10px #444;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #222;
+            color: #fff;
+        }
+        button {
+            background-color: #007bff;
+            border: none;
+            padding: 12px 20px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌌 Agent Genesis Protocol</h1>
+        <form method="POST">
+            <input type="text" name="user_input" placeholder="Ask anything..." required>
+            <button type="submit">Ask AGP 🚀</button>
+        </form>
+
+        {% if user_input %}
+            <h3>You asked:</h3>
+            <div class="response">{{ user_input }}</div>
+        {% endif %}
+
+        {% if assistant_reply %}
+            <h3>AGP replied:</h3>
+            <div class="response">{{ assistant_reply }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>
