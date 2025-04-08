@@ -1,181 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Agent Genesis Protocol (AGP)</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #111;
-            color: #f1f1f1;
-            transition: background-color 0.3s, color 0.3s;
-        }
+  <meta charset="UTF-8">
+  <title>Agent Genesis Protocol (AGP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #111;
+      color: #f1f1f1;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
 
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px 30px;
-            background-color: #1e1e1e;
-        }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 40px 20px;
+    }
 
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    h1 {
+      color: #00f7ff;
+      font-size: 2em;
+    }
 
-        .logo-container img {
-            height: 40px;
-        }
+    input[type="text"] {
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #222;
+      color: #fff;
+      margin-top: 20px;
+    }
 
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    button {
+      background-color: #00f7ff;
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
 
-        .container {
-            max-width: 700px;
-            margin: 40px auto;
-            background-color: #1e1e1e;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 0 10px #444;
-        }
+    .response-box {
+      margin-top: 30px;
+      background-color: #222;
+      padding: 20px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
 
-        textarea {
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            background-color: #222;
-            color: #fff;
-        }
+    .footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      text-align: center;
+      opacity: 0.6;
+    }
 
-        button {
-            background-color: #007bff;
-            border: none;
-            padding: 12px 20px;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+    .logo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-        .response {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #333;
-            border-radius: 8px;
-            white-space: pre-wrap;
-        }
+    .logo-bar img {
+      height: 40px;
+    }
 
-        .chat-entry {
-            margin-bottom: 15px;
-        }
+    .toggle-dark {
+      cursor: pointer;
+      font-size: 14px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: #333;
+      color: #ccc;
+      border: 1px solid #444;
+    }
 
-        .user {
-            color: #00d4ff;
-            font-weight: bold;
-        }
+    .dark-mode {
+      background-color: #f1f1f1;
+      color: #111;
+    }
 
-        .bot {
-            color: #ffcc00;
-            font-weight: bold;
-        }
+    .dark-mode input[type="text"],
+    .dark-mode .response-box {
+      background-color: #fff;
+      color: #111;
+    }
 
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            color: #aaa;
-            font-size: 14px;
-        }
+    .dark-mode button {
+      background-color: #000;
+      color: #00f7ff;
+    }
 
-        .dark-mode {
-            background-color: #f4f4f4;
-            color: #222;
-        }
-
-        .dark-mode .container {
-            background-color: #fff;
-            box-shadow: 0 0 10px #ccc;
-        }
-
-        .dark-mode textarea {
-            background-color: #f0f0f0;
-            color: #000;
-        }
-
-        .dark-mode .response {
-            background-color: #e0e0e0;
-            color: #000;
-        }
-
-        .dark-mode .footer {
-            color: #333;
-        }
-    </style>
+    .dark-mode .toggle-dark {
+      background: #eee;
+      color: #111;
+    }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo-container">
-            <img src="/static/logo.jpg" alt="Sentient Logo">
-            <strong>Powered by Sentient</strong>
-        </div>
-        <div class="toggle-switch">
-            <label for="darkToggle">🌗 Dark Mode</label>
-            <input type="checkbox" id="darkToggle" checked>
-        </div>
+  <div class="container">
+    <div class="logo-bar">
+      <h1>🌌 Agent Genesis Protocol</h1>
+      <button class="toggle-dark" onclick="toggleDark()">🌗 Dark Mode</button>
     </div>
 
-    <div class="container">
-        <h1>🌌 Agent Genesis Protocol</h1>
-        <div id="chat-box"></div>
-        <textarea id="user-input" placeholder="Ask anything..." rows="3"></textarea>
-        <button onclick="sendMessage()">Ask AGP 🚀</button>
-    </div>
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="Ask something..." autocomplete="off" required>
+      <button type="submit">Send</button>
+    </form>
+
+    <div class="response-box" id="response-box" style="display:none;"></div>
 
     <div class="footer">
-        Built with ❤️ by <strong>Panchu</strong> · Agent Genesis Protocol
+      Powered by <strong>Sentient</strong> 🤖 | Built by <strong>Panchu</strong>
     </div>
+  </div>
 
-    <script>
-        const textarea = document.getElementById("user-input");
-        const toggle = document.getElementById("darkToggle");
+  <script>
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("user-input");
+    const box = document.getElementById("response-box");
 
-        toggle.addEventListener("change", () => {
-            document.body.classList.toggle("dark-mode");
-        });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
 
-        textarea.addEventListener("keydown", async function (event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                await sendMessage();
-            }
-        });
+      box.style.display = "block";
+      box.innerHTML = "🤖 Thinking...";
 
-        async function sendMessage() {
-            const input = textarea.value.trim();
-            if (!input) return;
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: query })
+      });
 
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ input })
-            });
-            const data = await response.json();
+      const data = await res.json();
+      box.innerHTML = `<strong>👤 You:</strong> ${query}\n\n<strong>🤖 AGP:</strong> ${data.output || "Something went wrong!"}`;
+      input.value = "";
+    });
 
-            const chatBox = document.getElementById("chat-box");
-            chatBox.innerHTML += `<div class="chat-entry"><span class="user">👤 You:</span> ${input}</div>`;
-            chatBox.innerHTML += `<div class="chat-entry"><span class="bot">🤖 AGP:</span> ${data.output}</div>`;
-            textarea.value = "";
-        }
-    </script>
+    function toggleDark() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    // Allow pressing Enter to submit
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") form.dispatchEvent(new Event("submit"));
+    });
+  </script>
 </body>
 </html>

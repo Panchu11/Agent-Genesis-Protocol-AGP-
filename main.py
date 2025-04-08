@@ -14,7 +14,7 @@ FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 MODEL_ID = "accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new"
 MEMORY_FILE = "memory.json"
 
-# Ensure memory.json exists
+# Ensure memory file exists
 if not os.path.exists(MEMORY_FILE):
     with open(MEMORY_FILE, "w") as f:
         json.dump({}, f)
@@ -38,13 +38,13 @@ def chat():
     context = "\n".join([f"{k}: {v}" for k, v in memory.items()])
 
     prompt = f"""
-    You are AGP, a powerful assistant.
+You are AGP, a powerful assistant created through the Agent Genesis Protocol.
 
-    Known memory:
-    {context}
+Known memory:
+{context}
 
-    User: {user_input}
-    AGP:
+User: {user_input}
+AGP:
     """
 
     payload = {
@@ -68,10 +68,10 @@ def chat():
     if response.status_code == 200:
         output = response.json()["choices"][0]["text"].strip()
 
-        # Check for memory intent
+        # Check for memory storage intent
         if "remember my" in user_input.lower():
             try:
-                parts = user_input.split("remember my", 1)[1].strip().split(" is ")
+                parts = user_input.lower().split("remember my", 1)[1].strip().split(" is ")
                 key = parts[0].strip()
                 value = parts[1].strip()
                 memory[key] = value
