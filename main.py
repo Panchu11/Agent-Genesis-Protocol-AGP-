@@ -1,37 +1,46 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import requests
-from flask import Flask, request, jsonify, Response
 
 app = Flask(__name__)
-FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY", "fw_3ZXXr9SL3uJDwVZR6gpEPw8n")
-MODEL_URL = "https://api.fireworks.ai/inference/v1/completions"
+CORS(app)
 
-def generate_response(prompt):
-    headers = {
-        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "accounts/fireworks/models/dobby-unhinged-llama-3-70b",
-        "prompt": prompt,
-        "max_tokens": 1000,
-        "stream": False
-    }
-    response = requests.post(MODEL_URL, headers=headers, json=data)
-    return response.json().get("choices", [{}])[0].get("text", "").strip()
+FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 
-@app.route("/agent", methods=["POST"])
-def agent():
+@app.route("/", methods=["GET"])
+def home():
+    return "AGP is Live 🚀"
+
+@app.route("/chat", methods=["POST"])
+def chat():
     user_input = request.json.get("input", "")
     if not user_input:
         return jsonify({"error": "Missing input"}), 400
 
-    response = generate_response(user_input)
-    return jsonify({"output": response})
+    headers = {
+        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-@app.route("/")
-def home():
-    return "AGP Dobby Unhinged Agent is running!"
+    data = {
+        "model": "accounts/fireworks/models/dobby-unhinged-llama-3-70b",
+        "prompt": f"User: {user_input}\nAgent:",
+        "max_tokens": 300,
+        "temperature": 0.7,
+    }
+
+    response = requests.post(
+        "https://api.fireworks.ai/inference/v1/completions",
+        headers=headers,
+        json=data
+    )
+
+    if response.status_code == 200:
+        result = response.json()
+        return jsonify({"output": result["choices"][0]["text"].strip()})
+    else:
+        return jsonify({"error": "Fireworks API call failed", "details": response.text}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860)
