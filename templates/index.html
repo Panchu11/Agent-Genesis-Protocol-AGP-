@@ -5,87 +5,177 @@
     <title>Agent Genesis Protocol (AGP)</title>
     <style>
         body {
-            background-color: #0f0f0f;
-            color: #eee;
-            font-family: Arial, sans-serif;
-            padding: 30px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            color: #f1f1f1;
+            transition: background-color 0.3s, color 0.3s;
         }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 30px;
+            background-color: #1e1e1e;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-container img {
+            height: 40px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .container {
             max-width: 700px;
-            margin: auto;
-            background: #1a1a1a;
-            padding: 30px;
+            margin: 40px auto;
+            background-color: #1e1e1e;
             border-radius: 10px;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            box-shadow: 0 0 10px #444;
         }
-        input[type="text"] {
+
+        textarea {
             width: 100%;
             padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            border: none;
             font-size: 16px;
-            background-color: #2a2a2a;
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #222;
             color: #fff;
         }
+
         button {
-            background-color: #4ef;
-            color: #000;
-            padding: 12px 20px;
+            background-color: #007bff;
             border: none;
-            border-radius: 5px;
-            font-weight: bold;
+            padding: 12px 20px;
+            color: white;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 16px;
         }
-        .response-box {
+
+        .response {
             margin-top: 20px;
-            background: #222;
-            padding: 20px;
-            border-radius: 5px;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 8px;
             white-space: pre-wrap;
+        }
+
+        .chat-entry {
+            margin-bottom: 15px;
+        }
+
+        .user {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .bot {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .dark-mode {
+            background-color: #f4f4f4;
+            color: #222;
+        }
+
+        .dark-mode .container {
+            background-color: #fff;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        .dark-mode textarea {
+            background-color: #f0f0f0;
+            color: #000;
+        }
+
+        .dark-mode .response {
+            background-color: #e0e0e0;
+            color: #000;
+        }
+
+        .dark-mode .footer {
+            color: #333;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/logo.jpg" alt="Sentient Logo">
+            <strong>Powered by Sentient</strong>
+        </div>
+        <div class="toggle-switch">
+            <label for="darkToggle">🌗 Dark Mode</label>
+            <input type="checkbox" id="darkToggle" checked>
+        </div>
+    </div>
+
     <div class="container">
         <h1>🌌 Agent Genesis Protocol</h1>
-        <form id="chatForm">
-            <input type="text" id="userInput" placeholder="Ask anything..." required>
-            <button type="submit">Send</button>
-        </form>
-        <div class="response-box" id="responseBox" style="display:none;"></div>
+        <div id="chat-box"></div>
+        <textarea id="user-input" placeholder="Ask anything..." rows="3"></textarea>
+        <button onclick="sendMessage()">Ask AGP 🚀</button>
+    </div>
+
+    <div class="footer">
+        Built with ❤️ by <strong>Panchu</strong> · Agent Genesis Protocol
     </div>
 
     <script>
-        const form = document.getElementById("chatForm");
-        const input = document.getElementById("userInput");
-        const responseBox = document.getElementById("responseBox");
+        const textarea = document.getElementById("user-input");
+        const toggle = document.getElementById("darkToggle");
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const userMessage = input.value;
-            responseBox.style.display = "block";
-            responseBox.textContent = "🧠 AGP is thinking...";
-
-            try {
-                const response = await fetch("/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ input: userMessage })
-                });
-
-                const data = await response.json();
-                if (data.output) {
-                    responseBox.textContent = "👤 You: " + userMessage + "\n\n🤖 AGP: " + data.output;
-                } else {
-                    responseBox.textContent = "❌ Error: " + (data.error || "No reply");
-                }
-            } catch (err) {
-                responseBox.textContent = "⚠️ Network error. Check backend!";
-            }
-
-            input.value = "";
+        toggle.addEventListener("change", () => {
+            document.body.classList.toggle("dark-mode");
         });
+
+        textarea.addEventListener("keydown", async function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                await sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const input = textarea.value.trim();
+            if (!input) return;
+
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ input })
+            });
+            const data = await response.json();
+
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<div class="chat-entry"><span class="user">👤 You:</span> ${input}</div>`;
+            chatBox.innerHTML += `<div class="chat-entry"><span class="bot">🤖 AGP:</span> ${data.output}</div>`;
+            textarea.value = "";
+        }
     </script>
 </body>
 </html>
