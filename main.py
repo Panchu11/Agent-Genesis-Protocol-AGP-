@@ -24,7 +24,6 @@ DB_FILE = "agp_memory.db"
 AGENTS_DIR = "agents"
 REGISTRY_FILE = os.path.join(AGENTS_DIR, "registry.json")
 
-# Ensure important files/folders exist
 os.makedirs(AGENTS_DIR, exist_ok=True)
 for file_path, default in [
     (REPUTATION_FILE, {}),
@@ -35,15 +34,17 @@ for file_path, default in [
         with open(file_path, "w") as f:
             json.dump(default, f, indent=2)
 
-# Create SQLite memory DB if not exists
+# Ensure SQLite table
 conn = sqlite3.connect(DB_FILE)
 c = conn.cursor()
-c.execute("""CREATE TABLE IF NOT EXISTS memories (
+c.execute("""
+CREATE TABLE IF NOT EXISTS memories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_input TEXT,
     memory TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-)""")
+)
+""")
 conn.commit()
 conn.close()
 
@@ -70,7 +71,6 @@ def chat():
 
     user_input_lower = user_input.lower()
 
-    # Memory store
     if "remember my" in user_input_lower:
         try:
             parts = user_input_lower.split("remember my", 1)[1].strip().split(" is ")
@@ -85,7 +85,6 @@ def chat():
         except:
             return jsonify({"output": "Sorry, I couldn't remember that. Use: 'Remember my [thing] is [value].'"})
 
-    # Recall memory
     if "what do you remember" in user_input_lower or "recall" in user_input_lower:
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
@@ -98,7 +97,6 @@ def chat():
         else:
             return jsonify({"output": "I don’t remember anything yet. Teach me using: 'Remember my [thing] is [value].'"})
 
-    # System prompt
     trait_prompt = ", ".join([f"{k}: {v}" for k, v in traits.items()])
     system_msg = (
         f"You are AGP — created by Sentient, built by Panchu. "
@@ -212,7 +210,7 @@ def message():
     else:
         return jsonify({"error": "Fireworks API failed", "details": response.text}), 500
 
-# ✅ New Agent Registry Endpoints
+# ✅ Agent Registry
 @app.route("/register", methods=["POST"])
 def register_agent():
     data = request.json
@@ -242,6 +240,57 @@ def get_agent(name):
         return jsonify(registry[name])
     else:
         return jsonify({"error": "Agent not found."}), 404
+
+# ✅ Query Agent by name (new feature)
+@app.route("/query-agent", methods=["POST"])
+def query_agent():
+    data = request.json
+    agent_name = data.get("name")
+    question = data.get("input")
+
+    if not agent_name or not question:
+        return jsonify({"error": "Missing name or input."}), 400
+
+    registry = load_json(REGISTRY_FILE)
+    if agent_name not in registry:
+        return jsonify({"error": f"Agent '{agent_name}' not found."}), 404
+
+    traits_path = os.path.join(AGENTS_DIR, agent_name, "traits.json")
+    if not os.path.exists(traits_path):
+        return jsonify({"error": f"No traits found for '{agent_name}'."}), 404
+
+    traits = load_json(traits_path)
+    trait_desc = ", ".join([f"{k}: {v}" for k, v in traits.items()])
+    prompt = (
+        f"You are {agent_name}, a clone of AGP with these traits: {trait_desc}. "
+        f"Respond to the user query clearly.\n\n"
+    )
+
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": question}
+    ]
+
+    headers = {
+        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": MODEL_ID,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 250
+    }
+
+    response = requests.post("https://api.fireworks.ai/inference/v1/chat/completions", headers=headers, json=payload)
+
+    if response.status_code == 200:
+        result = response.json()
+        reply = result["choices"][0]["message"]["content"].strip()
+        return jsonify({"output": reply})
+    else:
+        return jsonify({"error": "Fireworks API failed", "details": response.text}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

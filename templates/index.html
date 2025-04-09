@@ -5,34 +5,90 @@
   <title>Agent Genesis Protocol (AGP)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background-color: #111;
-      color: #f1f1f1;
-      font-family: 'Segoe UI', sans-serif;
+    /* Reset & Base Styles */
+    * {
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f1f1f1;
+      overflow-x: hidden;
+    }
+
+    body {
+      position: relative;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Canvas background animation */
+    canvas#bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: transparent;
     }
 
     .container {
-      max-width: 700px;
-      margin: auto;
-      padding: 40px 20px;
+      max-width: 850px;
+      margin: 40px auto;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Header & Logo */
+    .logo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-left img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+      border-radius: 10px;
     }
 
     h1 {
-      color: #00f7ff;
       font-size: 2em;
+      color: #00f7ff;
+      text-shadow: 0 0 10px #00f7ff;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 15px;
       font-size: 16px;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       background-color: #222;
       color: #fff;
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
     button {
@@ -41,61 +97,76 @@
       border: none;
       padding: 12px 20px;
       font-size: 16px;
-      border-radius: 8px;
+      border-radius: 12px;
       margin-top: 10px;
       cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
     }
 
-    .response-box, .traits-box, .agents-box {
-      margin-top: 30px;
-      background-color: #222;
-      padding: 20px;
-      border-radius: 8px;
-      white-space: pre-wrap;
-    }
-
-    .footer {
-      margin-top: 40px;
-      font-size: 0.9em;
-      text-align: center;
-      opacity: 0.6;
-    }
-
-    .logo-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo-bar img {
-      height: 40px;
+    button:hover {
+      background-color: #02d0d0;
+      transform: translateY(-2px);
     }
 
     .toggle-dark {
       cursor: pointer;
       font-size: 14px;
-      padding: 6px 12px;
+      padding: 8px 16px;
       border-radius: 20px;
       background: #333;
       color: #ccc;
       border: 1px solid #444;
     }
 
+    .toggle-dark:hover {
+      background: #555;
+    }
+
+    .response-box {
+      margin-top: 30px;
+      background-color: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 10px #00000070;
+    }
+
+    .traits-box {
+      margin-top: 20px;
+      background: #1c1c1c;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 14px;
+      display: none;
+      box-shadow: inset 0 0 10px #00f7ff40;
+    }
+
+    .footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    /* Light mode styling */
     .dark-mode {
-      background-color: #f1f1f1;
+      background: linear-gradient(135deg, #ffffff, #f1f4f8);
+      color: #111;
+    }
+
+    .dark-mode .container {
+      background: rgba(255, 255, 255, 0.7);
       color: #111;
     }
 
     .dark-mode input[type="text"],
-    .dark-mode .response-box,
-    .dark-mode .traits-box,
-    .dark-mode .agents-box {
-      background-color: #fff;
+    .dark-mode select {
+      background-color: #f1f1f1;
       color: #111;
     }
 
     .dark-mode button {
-      background-color: #000;
+      background-color: #111;
       color: #00f7ff;
     }
 
@@ -104,26 +175,37 @@
       color: #111;
     }
 
-    .traits-box, .agents-box {
-      display: none;
-      font-size: 14px;
+    .dark-mode .response-box {
+      background-color: #fff;
+      color: #111;
     }
 
-    ul {
-      padding-left: 18px;
+    .dark-mode .traits-box {
+      background-color: #e0e0e0;
+      color: #111;
     }
 
-    .agents-box ul {
-      list-style: square;
+    .dark-mode h1 {
+      color: #222;
+      text-shadow: none;
     }
   </style>
 </head>
 <body>
+  <canvas id="bg-canvas"></canvas>
+
   <div class="container">
     <div class="logo-bar">
-      <h1>🌌 Agent Genesis Protocol</h1>
-      <button class="toggle-dark" onclick="toggleDark()">🌗 Dark Mode</button>
+      <div class="logo-left">
+        <img src="static/LOGO.png" alt="AGP Logo">
+        <h1>Agent Genesis Protocol</h1>
+      </div>
+      <button class="toggle-dark" onclick="toggleDark()">🌗 Toggle Night</button>
     </div>
+
+    <select id="agent-select">
+      <option value="">Choose an agent to chat with...</option>
+    </select>
 
     <form id="chat-form">
       <input type="text" id="user-input" placeholder="Ask something..." autocomplete="off" required>
@@ -132,11 +214,9 @@
 
     <div class="response-box" id="response-box" style="display:none;"></div>
     <div class="traits-box" id="traits-box"></div>
-    <div class="agents-box" id="agents-box"></div>
 
     <div style="margin-top: 20px;">
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
-      <button onclick="showAgents()">🧠 Show Agents</button>
     </div>
 
     <div class="footer">
@@ -145,34 +225,49 @@
   </div>
 
   <script>
+    // Load agents from backend
+    async function loadAgents() {
+      const res = await fetch("/agents");
+      const data = await res.json();
+      const select = document.getElementById("agent-select");
+      select.innerHTML = `<option value="">Choose an agent to chat with...</option>`;
+      for (let name in data) {
+        select.innerHTML += `<option value="${name}">${name}</option>`;
+      }
+    }
+
+    loadAgents();
+
+    // Handle chat
     const form = document.getElementById("chat-form");
     const input = document.getElementById("user-input");
     const box = document.getElementById("response-box");
     const traitsBox = document.getElementById("traits-box");
-    const agentsBox = document.getElementById("agents-box");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const query = input.value.trim();
+      const agent = document.getElementById("agent-select").value;
       if (!query) return;
 
       box.style.display = "block";
       box.innerHTML = "🤖 Thinking...";
 
-      const res = await fetch("/chat", {
+      const endpoint = agent ? "/query-agent" : "/chat";
+      const body = agent
+        ? { name: agent, input: query }
+        : { input: query };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: query })
+        body: JSON.stringify(body)
       });
 
       const data = await res.json();
-      box.innerHTML = `<strong>👤 You:</strong> ${query}\n\n<strong>🤖 AGP:</strong> ${data.output || "Something went wrong!"}`;
+      box.innerHTML = `<strong>👤 You:</strong> ${query}\n\n<strong>🤖 AGP:</strong> ${data.output || data.error || "Something went wrong!"}`;
       input.value = "";
     });
-
-    function toggleDark() {
-      document.body.classList.toggle("dark-mode");
-    }
 
     async function mutateAgent() {
       const res = await fetch("/mutate", { method: "POST" });
@@ -184,23 +279,57 @@
       `;
     }
 
-    async function showAgents() {
-      const res = await fetch("/agents");
-      const data = await res.json();
-
-      const list = Object.entries(data).map(([name, info]) => {
-        return `<li><strong>${info.avatar || "🤖"} ${name}</strong><br>
-        Role: ${info.role}<br>
-        Created: ${info.created}<br>
-        Active: ${info.active ? "✅" : "❌"}</li><br>`;
-      });
-
-      agentsBox.style.display = "block";
-      agentsBox.innerHTML = `<strong>🧠 Registered Agents:</strong><br><ul>${list.join("")}</ul>`;
+    // Toggle dark/light
+    function toggleDark() {
+      document.body.classList.toggle("dark-mode");
+      const isDark = document.body.classList.contains("dark-mode");
+      document.querySelector(".toggle-dark").innerText = isDark ? "🌞 Toggle Day" : "🌗 Toggle Night";
     }
 
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") form.dispatchEvent(new Event("submit"));
+    // Canvas Particle Background
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let particles = [];
+
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 2,
+          dx: (Math.random() - 0.5) * 0.8,
+          dy: (Math.random() - 0.5) * 0.8
+        });
+      }
+    }
+
+    function drawParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      });
+      requestAnimationFrame(drawParticles);
+    }
+
+    initParticles();
+    drawParticles();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
     });
   </script>
 </body>
