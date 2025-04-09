@@ -21,27 +21,21 @@ MODEL_ID = "accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new"
 REPUTATION_FILE = "reputation.json"
 TRAITS_FILE = "agent_traits.json"
 DB_FILE = "agp_memory.db"
-AGENT_FOLDER = "agents"
+AGENTS_DIR = "agents"
+REGISTRY_FILE = os.path.join(AGENTS_DIR, "registry.json")
 
-# Ensure necessary files/folders exist
-os.makedirs(AGENT_FOLDER, exist_ok=True)
-for file, default in [
+# Ensure important files/folders exist
+os.makedirs(AGENTS_DIR, exist_ok=True)
+for file_path, default in [
     (REPUTATION_FILE, {}),
-    (TRAITS_FILE, {
-        "temperament": "neutral",
-        "humor": "medium",
-        "curiosity": "high",
-        "empathy": "balanced",
-        "tone": "professional",
-        "intellect": "advanced",
-        "logic": "logical",
-        "sarcasm": "light"
-    })
+    (TRAITS_FILE, {"temperament": "neutral", "humor": "medium", "curiosity": "high"}),
+    (REGISTRY_FILE, {})
 ]:
-    if not os.path.exists(file):
-        with open(file, "w") as f:
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
             json.dump(default, f, indent=2)
 
+# Create SQLite memory DB if not exists
 conn = sqlite3.connect(DB_FILE)
 c = conn.cursor()
 c.execute("""CREATE TABLE IF NOT EXISTS memories (
@@ -76,7 +70,7 @@ def chat():
 
     user_input_lower = user_input.lower()
 
-    # Learn memory
+    # Memory store
     if "remember my" in user_input_lower:
         try:
             parts = user_input_lower.split("remember my", 1)[1].strip().split(" is ")
@@ -104,8 +98,12 @@ def chat():
         else:
             return jsonify({"output": "I don’t remember anything yet. Teach me using: 'Remember my [thing] is [value].'"})
 
+    # System prompt
     trait_prompt = ", ".join([f"{k}: {v}" for k, v in traits.items()])
-    system_msg = f"You are AGP — created by Sentient, built by Panchu. Traits: {trait_prompt}. Use memory only when the user asks."
+    system_msg = (
+        f"You are AGP — created by Sentient, built by Panchu. "
+        f"Traits: {trait_prompt}. Use memory only when the user asks."
+    )
 
     messages = [
         {"role": "system", "content": system_msg},
@@ -139,12 +137,14 @@ def chat():
         save_json(REPUTATION_FILE, rep_data)
         return jsonify({"output": reply})
     else:
-        return jsonify({"error": "Fireworks API call failed", "details": response.text}), 500
+        return jsonify({
+            "error": "Fireworks API call failed",
+            "details": response.text
+        }), 500
 
 @app.route("/mutate", methods=["POST"])
 def mutate():
     traits = load_json(TRAITS_FILE)
-
     mutation_pool = {
         "temperament": ["neutral", "aggressive", "calm", "rebellious", "playful", "stoic"],
         "humor": ["low", "medium", "high", "sarcastic", "dry", "dark"],
@@ -184,13 +184,10 @@ def message():
     incoming = request.json.get("input", "").strip()
 
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are AGP — a Sentient-developed agent in a network of agents. "
-                "This message is from another AI agent. Respond intelligently and concisely."
-            )
-        },
+        {"role": "system", "content": (
+            "You are AGP — a Sentient-developed agent in a network of agents. "
+            "This message is from another AI agent. Respond intelligently and concisely."
+        )},
         {"role": "user", "content": incoming}
     ]
 
@@ -209,34 +206,42 @@ def message():
     response = requests.post("https://api.fireworks.ai/inference/v1/chat/completions", headers=headers, json=payload)
 
     if response.status_code == 200:
-        reply = response.json()["choices"][0]["message"]["content"].strip()
+        result = response.json()
+        reply = result["choices"][0]["message"]["content"].strip()
         return jsonify({"output": reply})
     else:
         return jsonify({"error": "Fireworks API failed", "details": response.text}), 500
 
-@app.route("/clone", methods=["POST"])
-def clone():
+# ✅ New Agent Registry Endpoints
+@app.route("/register", methods=["POST"])
+def register_agent():
     data = request.json
-    agent_name = data.get("name", "").strip().lower().replace(" ", "_")
+    name = data.get("name")
+    role = data.get("role", "default")
+    avatar = data.get("avatar", "🤖")
+    active = data.get("active", True)
 
-    if not agent_name:
-        return jsonify({"error": "Agent name is required."}), 400
+    registry = load_json(REGISTRY_FILE)
+    registry[name] = {
+        "role": role,
+        "avatar": avatar,
+        "active": active,
+        "created": str(datetime.utcnow())
+    }
+    save_json(REGISTRY_FILE, registry)
+    return jsonify({"message": f"Agent '{name}' registered."})
 
-    folder = os.path.join(AGENT_FOLDER, agent_name)
-    os.makedirs(folder, exist_ok=True)
+@app.route("/agents", methods=["GET"])
+def list_agents():
+    return jsonify(load_json(REGISTRY_FILE))
 
-    # Save traits + profile
-    traits = load_json(TRAITS_FILE)
-    save_json(os.path.join(folder, "traits.json"), traits)
-    save_json(os.path.join(folder, "profile.json"), {
-        "name": agent_name,
-        "created": str(datetime.utcnow()),
-        "traits": traits,
-        "reputation": 0,
-        "memory": "none"
-    })
-
-    return jsonify({"message": f"Agent '{agent_name}' cloned successfully."})
+@app.route("/agent/<name>", methods=["GET"])
+def get_agent(name):
+    registry = load_json(REGISTRY_FILE)
+    if name in registry:
+        return jsonify(registry[name])
+    else:
+        return jsonify({"error": "Agent not found."}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
