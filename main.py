@@ -7,6 +7,7 @@ import requests
 import uuid
 from datetime import datetime
 import random
+import sqlite3
 
 # Load environment variables
 load_dotenv()
@@ -17,21 +18,24 @@ CORS(app)
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 MODEL_ID = "accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new"
 
-MEMORY_FILE = "memory.json"
 REPUTATION_FILE = "reputation.json"
 TRAITS_FILE = "agent_traits.json"
 
-# Ensure required files exist
-for file_path, default in [
-    (MEMORY_FILE, {}),
-    (REPUTATION_FILE, {}),
-    (TRAITS_FILE, {"temperament": "neutral", "humor": "medium", "curiosity": "high"})
-]:
-    if not os.path.exists(file_path):
-        with open(file_path, "w") as f:
-            json.dump(default, f, indent=2)
+DB_FILE = "agp_memory.db"
+conn = sqlite3.connect(DB_FILE)
+c = conn.cursor()
+c.execute("""CREATE TABLE IF NOT EXISTS memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_input TEXT,
+    memory TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+)""")
+conn.commit()
+conn.close()
 
 def load_json(file):
+    if not os.path.exists(file):
+        return {}
     with open(file, "r") as f:
         return json.load(f)
 
@@ -47,41 +51,45 @@ def index():
 def chat():
     user_input = request.json.get("input", "").strip()
 
-    memory = load_json(MEMORY_FILE)
     traits = load_json(TRAITS_FILE)
     rep_data = load_json(REPUTATION_FILE)
 
     user_input_lower = user_input.lower()
 
-    # Learn memory
     if "remember my" in user_input_lower:
         try:
             parts = user_input_lower.split("remember my", 1)[1].strip().split(" is ")
-            key = parts[0].strip().capitalize()
+            key = parts[0].strip()
             value = parts[1].strip()
-            memory[key] = value
-            save_json(MEMORY_FILE, memory)
+            conn = sqlite3.connect(DB_FILE)
+            c = conn.cursor()
+            c.execute("INSERT INTO memories (user_input, memory) VALUES (?, ?)", (key, value))
+            conn.commit()
+            conn.close()
             return jsonify({"output": f"Got it. I've remembered your {key}: {value}."})
         except:
-            return jsonify({"output": "Sorry, I couldn't remember that. Try again using: 'Remember my [thing] is [value]'."})
+            return jsonify({"output": "Sorry, I couldn't remember that. Use: 'Remember my [thing] is [value].'"})
 
-    # Recall memory
     if "what do you remember" in user_input_lower or "recall" in user_input_lower:
-        if memory:
-            lines = [f"- {k}: {v}" for k, v in memory.items()]
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("SELECT user_input, memory FROM memories")
+        rows = c.fetchall()
+        conn.close()
+        if rows:
+            lines = [f"- {k.strip().capitalize()}: {v}" for k, v in rows]
             return jsonify({"output": "Here's what I remember:\n" + "\n".join(lines)})
         else:
             return jsonify({"output": "I don’t remember anything yet. Teach me using: 'Remember my [thing] is [value].'"})
 
-    # Compose prompt
     trait_prompt = ", ".join([f"{k}: {v}" for k, v in traits.items()])
-    memory_note = "Use memory only when the user asks about it."
+    system_msg = (
+        f"You are AGP — created by Sentient, built by Panchu. "
+        f"Traits: {trait_prompt}. Use memory only when the user asks."
+    )
 
     messages = [
-        {
-            "role": "system",
-            "content": f"You are AGP — created by Sentient, built by Panchu. Personality traits: {trait_prompt}. {memory_note}"
-        },
+        {"role": "system", "content": system_msg},
         {"role": "user", "content": user_input}
     ]
 
@@ -121,6 +129,44 @@ def chat():
             "details": response.text
         }), 500
 
+@app.route("/mutate", methods=["POST"])
+def mutate():
+    traits = load_json(TRAITS_FILE)
+
+    mutation_pool = {
+        "temperament": ["neutral", "aggressive", "calm", "rebellious", "playful", "stoic", "hyperactive", "apathetic"],
+        "humor": ["low", "medium", "high", "sarcastic", "dry", "dark", "witty", "absurd"],
+        "curiosity": ["low", "medium", "high", "obsessive", "cautious", "insatiable"],
+        "empathy": ["low", "balanced", "high", "robotic", "empathetic", "detached"],
+        "tone": ["professional", "casual", "chaotic", "sassy", "mysterious", "bold"],
+        "intellect": ["basic", "advanced", "scholarly", "genius", "intuitive", "street-smart"],
+        "logic": ["emotional", "logical", "analytical", "creative", "impulsive"],
+        "sarcasm": ["none", "light", "frequent", "extreme", "subtle", "over-the-top"],
+        "discipline": ["strict", "flexible", "rigid", "fluid", "adaptable"],
+        "language_style": ["formal", "slang-heavy", "poetic", "minimalist"],
+        "focus": ["broad", "narrow", "task-specific", "multitasking"],
+        "vocabulary": ["basic", "eloquent", "verbose", "technical"],
+        "response_style": ["short", "medium", "detailed", "storytelling", "command-style"],
+        "decisiveness": ["decisive", "indecisive", "neutral"],
+        "humility": ["modest", "prideful", "arrogant"],
+        "confidence": ["low", "balanced", "confident", "overconfident"],
+        "risk_taking": ["risky", "cautious", "balanced"],
+        "social": ["introvert", "extrovert", "ambivert"],
+        "tempo": ["fast", "slow", "balanced"],
+        "jargon_use": ["technical", "accessible", "mixed"],
+        "explanation_level": ["simple", "moderate", "in-depth", "example-based"],
+        "grammar_rigidity": ["strict", "flexible", "creative"],
+        "meta_awareness": ["aware", "unaware", "reactive"]
+    }
+
+    mutated = []
+    for trait in mutation_pool:
+        traits[trait] = random.choice(mutation_pool[trait])
+        mutated.append(f"{trait}: {traits[trait]}")
+
+    save_json(TRAITS_FILE, traits)
+    return jsonify({"message": "Traits mutated successfully.", "mutations_applied": mutated})
+
 @app.route("/rate", methods=["POST"])
 def rate():
     data = request.json
@@ -133,41 +179,6 @@ def rate():
         save_json(REPUTATION_FILE, rep_data)
         return jsonify({"message": "Reputation updated successfully."})
     return jsonify({"error": "Message ID not found."}), 404
-
-@app.route("/mutate", methods=["POST"])
-def mutate():
-    traits = load_json(TRAITS_FILE)
-
-    # Expanded trait pools (100+ variations)
-    mutation_pool = {
-        "temperament": [
-            "neutral", "aggressive", "calm", "rebellious", "playful", "stoic", "optimistic", "anxious",
-            "sarcastic", "charming", "curious", "direct", "gentle", "grumpy", "cheerful", "wise",
-            "strategic", "cynical", "intense", "calculated", "chaotic", "inspiring", "cold", "energetic",
-            "diplomatic", "assertive", "mysterious", "sassy", "zen"
-        ],
-        "humor": [
-            "low", "medium", "high", "sarcastic", "dry", "dark", "witty", "childish", "deadpan",
-            "quirky", "intellectual", "random", "punny", "offbeat", "absurd", "cringe", "meme-like",
-            "self-deprecating", "wild", "chill"
-        ],
-        "curiosity": [
-            "low", "medium", "high", "obsessive", "cautious", "boundless", "calculated", "limited",
-            "tactical", "impulsive", "critical", "visionary", "scientific", "philosophical", "childlike",
-            "conspiratorial", "skeptical", "analytic"
-        ]
-    }
-
-    mutations_applied = []
-
-    for trait in traits:
-        if trait in mutation_pool:
-            new_value = random.choice(mutation_pool[trait])
-            mutations_applied.append(f"{trait.capitalize()}: {new_value}")
-            traits[trait] = new_value
-
-    save_json(TRAITS_FILE, traits)
-    return jsonify({"message": "Traits mutated successfully.", "mutations_applied": mutations_applied})
 
 @app.route("/message", methods=["POST"])
 def message():
