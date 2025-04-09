@@ -46,7 +46,7 @@
       cursor: pointer;
     }
 
-    .response-box {
+    .response-box, .traits-box, .agents-box {
       margin-top: 30px;
       background-color: #222;
       padding: 20px;
@@ -87,7 +87,9 @@
     }
 
     .dark-mode input[type="text"],
-    .dark-mode .response-box {
+    .dark-mode .response-box,
+    .dark-mode .traits-box,
+    .dark-mode .agents-box {
       background-color: #fff;
       color: #111;
     }
@@ -102,13 +104,17 @@
       color: #111;
     }
 
-    .traits-box {
-      margin-top: 20px;
-      background: #1c1c1c;
-      border-radius: 10px;
-      padding: 15px;
-      font-size: 14px;
+    .traits-box, .agents-box {
       display: none;
+      font-size: 14px;
+    }
+
+    ul {
+      padding-left: 18px;
+    }
+
+    .agents-box ul {
+      list-style: square;
     }
   </style>
 </head>
@@ -126,9 +132,11 @@
 
     <div class="response-box" id="response-box" style="display:none;"></div>
     <div class="traits-box" id="traits-box"></div>
+    <div class="agents-box" id="agents-box"></div>
 
     <div style="margin-top: 20px;">
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
+      <button onclick="showAgents()">🧠 Show Agents</button>
     </div>
 
     <div class="footer">
@@ -141,6 +149,7 @@
     const input = document.getElementById("user-input");
     const box = document.getElementById("response-box");
     const traitsBox = document.getElementById("traits-box");
+    const agentsBox = document.getElementById("agents-box");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -173,6 +182,21 @@
         <strong>🧬 Mutated Agent Traits:</strong><br><br>
         <ul>${data.mutations_applied.map(t => `<li>${t}</li>`).join("")}</ul>
       `;
+    }
+
+    async function showAgents() {
+      const res = await fetch("/agents");
+      const data = await res.json();
+
+      const list = Object.entries(data).map(([name, info]) => {
+        return `<li><strong>${info.avatar || "🤖"} ${name}</strong><br>
+        Role: ${info.role}<br>
+        Created: ${info.created}<br>
+        Active: ${info.active ? "✅" : "❌"}</li><br>`;
+      });
+
+      agentsBox.style.display = "block";
+      agentsBox.innerHTML = `<strong>🧠 Registered Agents:</strong><br><ul>${list.join("")}</ul>`;
     }
 
     input.addEventListener("keypress", (e) => {
