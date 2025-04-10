@@ -1,26 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Agent Genesis Protocol (AGP)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* Reset & Base Styles */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
       font-family: 'Segoe UI', sans-serif;
       color: #f1f1f1;
       overflow-x: hidden;
-    }
-
-    body {
-      position: relative;
       background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
       background-size: 400% 400%;
       animation: gradientBG 20s ease infinite;
@@ -32,7 +22,6 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* Canvas background animation */
     canvas#bg-canvas {
       position: fixed;
       top: 0;
@@ -53,7 +42,6 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
-    /* Header & Logo */
     .logo-bar {
       display: flex;
       align-items: center;
@@ -70,7 +58,6 @@
     .logo-left img {
       width: 50px;
       height: 50px;
-      object-fit: contain;
       border-radius: 10px;
     }
 
@@ -84,11 +71,11 @@
       width: 100%;
       padding: 15px;
       font-size: 16px;
-      border: none;
       border-radius: 12px;
       background-color: #222;
       color: #fff;
       margin-top: 10px;
+      border: none;
     }
 
     button {
@@ -109,17 +96,12 @@
     }
 
     .toggle-dark {
-      cursor: pointer;
       font-size: 14px;
       padding: 8px 16px;
       border-radius: 20px;
       background: #333;
       color: #ccc;
       border: 1px solid #444;
-    }
-
-    .toggle-dark:hover {
-      background: #555;
     }
 
     .response-box {
@@ -148,9 +130,8 @@
       opacity: 0.7;
     }
 
-    /* Light mode styling */
     .dark-mode {
-      background: linear-gradient(135deg, #ffffff, #f1f4f8);
+      background: #f1f1f1;
       color: #111;
     }
 
@@ -208,7 +189,7 @@
     </select>
 
     <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ask something..." autocomplete="off" required>
+      <input type="text" id="user-input" placeholder="Ask something..." required />
       <button type="submit">Send</button>
     </form>
 
@@ -219,44 +200,46 @@
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
     </div>
 
+    <!-- ✅ NEW: Agent-to-Agent Messaging -->
+    <div style="margin-top: 50px;">
+      <h2 style="margin-bottom: 10px;">🧠 Agent-to-Agent Communication</h2>
+      <select id="sender-agent">
+        <option value="">Select Sender Agent</option>
+      </select>
+      <select id="receiver-agent">
+        <option value="">Select Receiver Agent</option>
+      </select>
+      <input type="text" id="agent-message" placeholder="Message from sender to receiver..." />
+      <button onclick="talkToAgent()">Send Message ➡️</button>
+      <div class="response-box" id="agent-talk-response" style="display:none; margin-top: 20px;"></div>
+    </div>
+
     <div class="footer">
       Powered by <strong>Sentient</strong> 🤖 | Built by <strong>Panchu</strong>
     </div>
   </div>
 
   <script>
-    // Load agents from backend
-    async function loadAgents() {
-      const res = await fetch("/agents");
-      const data = await res.json();
-      const select = document.getElementById("agent-select");
-      select.innerHTML = `<option value="">Choose an agent to chat with...</option>`;
-      for (let name in data) {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
-      }
-    }
-
-    loadAgents();
-
-    // Handle chat
     const form = document.getElementById("chat-form");
     const input = document.getElementById("user-input");
     const box = document.getElementById("response-box");
     const traitsBox = document.getElementById("traits-box");
+    const agentSelect = document.getElementById("agent-select");
+    const senderSelect = document.getElementById("sender-agent");
+    const receiverSelect = document.getElementById("receiver-agent");
+    const talkResponse = document.getElementById("agent-talk-response");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const query = input.value.trim();
-      const agent = document.getElementById("agent-select").value;
+      const agent = agentSelect.value;
       if (!query) return;
 
       box.style.display = "block";
       box.innerHTML = "🤖 Thinking...";
 
       const endpoint = agent ? "/query-agent" : "/chat";
-      const body = agent
-        ? { name: agent, input: query }
-        : { input: query };
+      const body = agent ? { name: agent, input: query } : { input: query };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -265,7 +248,8 @@
       });
 
       const data = await res.json();
-      box.innerHTML = `<strong>👤 You:</strong> ${query}\n\n<strong>🤖 AGP:</strong> ${data.output || data.error || "Something went wrong!"}`;
+      const reply = data.output || data.error || "Something went wrong!";
+      typeOut(`👤 You: ${query}\n\n🤖 AGP: `, box, reply);
       input.value = "";
     });
 
@@ -279,58 +263,107 @@
       `;
     }
 
-    // Toggle dark/light
     function toggleDark() {
       document.body.classList.toggle("dark-mode");
-      const isDark = document.body.classList.contains("dark-mode");
-      document.querySelector(".toggle-dark").innerText = isDark ? "🌞 Toggle Day" : "🌗 Toggle Night";
+      const btn = document.querySelector(".toggle-dark");
+      btn.innerText = document.body.classList.contains("dark-mode")
+        ? "🌞 Toggle Day"
+        : "🌗 Toggle Night";
     }
 
-    // Canvas Particle Background
-    const canvas = document.getElementById('bg-canvas');
-    const ctx = canvas.getContext('2d');
+    async function loadAgents() {
+      const res = await fetch("/agents");
+      const data = await res.json();
+      agentSelect.innerHTML = `<option value="">Choose an agent to chat with...</option>`;
+      senderSelect.innerHTML = `<option value="">Select Sender Agent</option>`;
+      receiverSelect.innerHTML = `<option value="">Select Receiver Agent</option>`;
+      for (let name in data) {
+        agentSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        senderSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        receiverSelect.innerHTML += `<option value="${name}">${name}</option>`;
+      }
+    }
+
+    function typeOut(prefix, element, text) {
+      let i = 0;
+      element.innerHTML = prefix;
+      const interval = setInterval(() => {
+        element.innerHTML += text.charAt(i);
+        i++;
+        if (i >= text.length) clearInterval(interval);
+      }, 20);
+    }
+
+    async function talkToAgent() {
+      const sender = senderSelect.value;
+      const receiver = receiverSelect.value;
+      const message = document.getElementById("agent-message").value.trim();
+      if (!sender || !receiver || !message) return;
+
+      talkResponse.style.display = "block";
+      talkResponse.innerHTML = "📡 Sending message...";
+
+      const res = await fetch("/talk-to-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sender, receiver, message })
+      });
+
+      const data = await res.json();
+      const reply = data.output || data.error || "Something went wrong!";
+      typeOut(`📨 From ${receiver} to ${sender}:\n\n`, talkResponse, reply);
+    }
+
+    // Star particle background
+    const canvas = document.getElementById("bg-canvas");
+    const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let particles = [];
+    let stars = [];
 
-    function initParticles() {
-      particles = [];
-      for (let i = 0; i < 120; i++) {
-        particles.push({
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < 150; i++) {
+        stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          radius: Math.random() * 2,
-          dx: (Math.random() - 0.5) * 0.8,
-          dy: (Math.random() - 0.5) * 0.8
+          radius: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.2,
+          dy: (Math.random() - 0.5) * 0.2,
+          alpha: Math.random()
         });
       }
     }
 
-    function drawParticles() {
+    function drawStars() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      particles.forEach(p => {
+      stars.forEach((star) => {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
         ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
 
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+        star.x += star.dx;
+        star.y += star.dy;
+
+        if (star.x < 0) star.x = canvas.width;
+        if (star.x > canvas.width) star.x = 0;
+        if (star.y < 0) star.y = canvas.height;
+        if (star.y > canvas.height) star.y = 0;
       });
-      requestAnimationFrame(drawParticles);
+      requestAnimationFrame(drawStars);
     }
 
-    initParticles();
-    drawParticles();
-
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      initParticles();
+      initStars();
     });
+
+    loadAgents();
+    initStars();
+    drawStars();
   </script>
 </body>
 </html>

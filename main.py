@@ -210,7 +210,6 @@ def message():
     else:
         return jsonify({"error": "Fireworks API failed", "details": response.text}), 500
 
-# ✅ Agent Registry
 @app.route("/register", methods=["POST"])
 def register_agent():
     data = request.json
@@ -241,7 +240,6 @@ def get_agent(name):
     else:
         return jsonify({"error": "Agent not found."}), 404
 
-# ✅ Query Agent by name (new feature)
 @app.route("/query-agent", methods=["POST"])
 def query_agent():
     data = request.json
@@ -292,5 +290,86 @@ def query_agent():
     else:
         return jsonify({"error": "Fireworks API failed", "details": response.text}), 500
 
+@app.route("/talk-to-agent", methods=["POST"])
+def talk_to_agent():
+    data = request.json
+    sender = data.get("sender")
+    receiver = data.get("receiver")
+    message = data.get("message")
+
+    if not sender or not receiver or not message:
+        return jsonify({"error": "Missing sender, receiver, or message."}), 400
+
+    registry = load_json(REGISTRY_FILE)
+    if receiver not in registry:
+        return jsonify({"error": f"Receiver agent '{receiver}' not found."}), 404
+
+    traits_path = os.path.join(AGENTS_DIR, receiver, "traits.json")
+    if not os.path.exists(traits_path):
+        return jsonify({"error": f"No traits found for '{receiver}'."}), 404
+
+    traits = load_json(traits_path)
+    trait_desc = ", ".join([f"{k}: {v}" for k, v in traits.items()])
+    prompt = (
+        f"You are {receiver}, a cloned AGP agent. Traits: {trait_desc}. "
+        f"You are receiving a message from {sender}. Respond as yourself:\n"
+    )
+
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": message}
+    ]
+
+    headers = {
+        "Authorization": f"Bearer {FIREWORKS_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": MODEL_ID,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 300
+    }
+
+    response = requests.post("https://api.fireworks.ai/inference/v1/chat/completions", headers=headers, json=payload)
+
+    if response.status_code == 200:
+        result = response.json()
+        reply = result["choices"][0]["message"]["content"].strip()
+
+        memory_file = os.path.join(AGENTS_DIR, receiver, "memory.json")
+        memory_entry = {
+            "from": sender,
+            "to": receiver,
+            "message": message,
+            "response": reply,
+            "timestamp": str(datetime.utcnow())
+        }
+
+        if os.path.exists(memory_file):
+            with open(memory_file, "r") as f:
+                memory_data = json.load(f)
+        else:
+            memory_data = []
+
+        memory_data.append(memory_entry)
+
+        with open(memory_file, "w") as f:
+            json.dump(memory_data, f, indent=2)
+
+        return jsonify({
+            "output": reply,
+            "from": receiver,
+            "to": sender
+        })
+    else:
+        return jsonify({
+            "error": "Fireworks API failed",
+            "details": response.text
+        }), 500
+
+# ✅ FINAL BLOCK — FOR RENDER DEPLOYMENT
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=False, host="0.0.0.0", port=port)
