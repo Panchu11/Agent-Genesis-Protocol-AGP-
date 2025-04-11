@@ -196,9 +196,295 @@
     <div class="response-box" id="response-box" style="display:none;"></div>
     <div class="traits-box" id="traits-box"></div>
 
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
+      <button onclick="showCreateAgentModal()">➕ Create New Agent</button>
+      <button onclick="showAgentProfiles()">👥 Show Agents</button>
     </div>
+
+    <!-- Agent Profiles Display -->
+    <div id="agent-profiles" style="display:none; margin-top: 30px;">
+      <h2>🧑‍🚀 Agent Profiles</h2>
+      <div id="profiles-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;"></div>
+    </div>
+
+    <!-- Agent Creation Modal -->
+    <div id="agent-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; padding-top:50px;">
+      <div style="background:#222; max-width:600px; margin:auto; padding:30px; border-radius:15px;">
+        <h2 style="margin-bottom:20px;">🧩 Create New Agent</h2>
+        
+        <div style="margin-bottom:15px;">
+          <label>Agent Name</label>
+          <input type="text" id="agent-name" placeholder="Unique agent name" style="width:100%;">
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label>Agent Role</label>
+          <select id="agent-role" style="width:100%;">
+            <option value="Explorer">Explorer</option>
+            <option value="Researcher">Researcher</option>
+            <option value="Strategist">Strategist</option>
+            <option value="Analyst">Analyst</option>
+            <option value="Creator">Creator</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label>Avatar</label>
+          <div id="avatar-picker" style="display:flex; gap:10px; margin-top:10px;">
+            <span style="font-size:24px; cursor:pointer;" onclick="selectAvatar('🤖')">🤖</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectAvatar('👽')">👽</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectAvatar('👻')">👻</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectAvatar('🧠')">🧠</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectAvatar('👾')">👾</span>
+          </div>
+        </div>
+
+        <h3 style="margin:20px 0 10px 0;">Agent Traits</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+          <!-- Temperament -->
+          <div>
+            <label>Temperament: <span id="temperament-value">neutral</span></label>
+            <select id="temperament" onchange="updateTraitSelect('temperament')">
+              <option value="neutral">Neutral</option>
+              <option value="aggressive">Aggressive</option>
+              <option value="calm">Calm</option>
+              <option value="rebellious">Rebellious</option>
+              <option value="playful">Playful</option>
+              <option value="stoic">Stoic</option>
+            </select>
+          </div>
+
+          <!-- Humor -->
+          <div>
+            <label>Humor: <span id="humor-value">medium</span></label>
+            <select id="humor" onchange="updateTraitSelect('humor')">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="sarcastic">Sarcastic</option>
+              <option value="dry">Dry</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+
+          <!-- Curiosity -->
+          <div>
+            <label>Curiosity: <span id="curiosity-value">high</span></label>
+            <select id="curiosity" onchange="updateTraitSelect('curiosity')">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high" selected>High</option>
+              <option value="obsessive">Obsessive</option>
+              <option value="cautious">Cautious</option>
+            </select>
+          </div>
+
+          <!-- Empathy -->
+          <div>
+            <label>Empathy: <span id="empathy-value">balanced</span></label>
+            <select id="empathy" onchange="updateTraitSelect('empathy')">
+              <option value="low">Low</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="high">High</option>
+              <option value="robotic">Robotic</option>
+            </select>
+          </div>
+
+          <!-- Tone -->
+          <div>
+            <label>Tone: <span id="tone-value">professional</span></label>
+            <select id="tone" onchange="updateTraitSelect('tone')">
+              <option value="professional" selected>Professional</option>
+              <option value="casual">Casual</option>
+              <option value="chaotic">Chaotic</option>
+              <option value="sassy">Sassy</option>
+            </select>
+          </div>
+
+          <!-- Intellect -->
+          <div>
+            <label>Intellect: <span id="intellect-value">advanced</span></label>
+            <select id="intellect" onchange="updateTraitSelect('intellect')">
+              <option value="basic">Basic</option>
+              <option value="advanced" selected>Advanced</option>
+              <option value="scholarly">Scholarly</option>
+              <option value="genius">Genius</option>
+            </select>
+          </div>
+
+          <!-- Logic -->
+          <div>
+            <label>Logic: <span id="logic-value">analytical</span></label>
+            <select id="logic" onchange="updateTraitSelect('logic')">
+              <option value="emotional">Emotional</option>
+              <option value="logical">Logical</option>
+              <option value="analytical" selected>Analytical</option>
+            </select>
+          </div>
+
+          <!-- Sarcasm -->
+          <div>
+            <label>Sarcasm: <span id="sarcasm-value">light</span></label>
+            <select id="sarcasm" onchange="updateTraitSelect('sarcasm')">
+              <option value="none">None</option>
+              <option value="light" selected>Light</option>
+              <option value="frequent">Frequent</option>
+              <option value="extreme">Extreme</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Agent Preview -->
+        <div id="agent-preview" style="background: #2a2a2a; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 10px;" id="preview-avatar">🤖</div>
+          <h3 id="preview-name">New Agent</h3>
+          <div style="color: #aaa;" id="preview-role">Role: Explorer</div>
+          <div style="margin-top: 15px; font-size: 14px; text-align: left;">
+            <strong>Traits Preview:</strong>
+            <div id="preview-traits" style="margin-top: 5px;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button onclick="createAgent()" style="flex:1;">Create Agent</button>
+          <button onclick="hideCreateAgentModal()" style="flex:1; background:#444;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Cloning Modal -->
+    <div id="clone-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; padding-top:50px;">
+      <div style="background:#222; max-width:600px; margin:auto; padding:30px; border-radius:15px;">
+        <h2 style="margin-bottom:20px;">🧬 Clone Agent</h2>
+        
+        <div style="margin-bottom:15px;">
+          <label>Source Agent</label>
+          <select id="source-agent" style="width:100%;">
+            <option value="">Select agent to clone</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label>New Agent Name</label>
+          <input type="text" id="clone-name" placeholder="Unique name for cloned agent" style="width:100%;">
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label>New Role</label>
+          <select id="clone-role" style="width:100%;">
+            <option value="same">Same as source</option>
+            <option value="Explorer">Explorer</option>
+            <option value="Researcher">Researcher</option>
+            <option value="Strategist">Strategist</option>
+            <option value="Analyst">Analyst</option>
+            <option value="Creator">Creator</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label>Avatar</label>
+          <div id="clone-avatar-picker" style="display:flex; gap:10px; margin-top:10px;">
+            <span style="font-size:24px; cursor:pointer;" onclick="selectCloneAvatar('🤖')">🤖</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectCloneAvatar('👽')">👽</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectCloneAvatar('👻')">👻</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectCloneAvatar('🧠')">🧠</span>
+            <span style="font-size:24px; cursor:pointer;" onclick="selectCloneAvatar('👾')">👾</span>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button onclick="cloneAgent()" style="flex:1;">Create Clone</button>
+          <button onclick="hideCloneModal()" style="flex:1; background:#444;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Clone button to agent cards -->
+    <script>
+      let cloneSelectedAvatar = '🤖';
+
+      function showCloneModal() {
+        document.getElementById('clone-modal').style.display = 'block';
+        populateSourceAgents();
+      }
+
+      function hideCloneModal() {
+        document.getElementById('clone-modal').style.display = 'none';
+      }
+
+      function selectCloneAvatar(avatar) {
+        cloneSelectedAvatar = avatar;
+        const picker = document.getElementById('clone-avatar-picker');
+        const spans = picker.querySelectorAll('span');
+        spans.forEach(span => {
+          span.style.border = 'none';
+        });
+        event.target.style.border = '2px solid #00f7ff';
+      }
+
+      async function populateSourceAgents() {
+        const res = await fetch('/agents');
+        const agents = await res.json();
+        const select = document.getElementById('source-agent');
+        select.innerHTML = '<option value="">Select agent to clone</option>';
+        for (let name in agents) {
+          select.innerHTML += `<option value="${name}">${name}</option>`;
+        }
+      }
+
+      async function cloneAgent() {
+        const source = document.getElementById('source-agent').value;
+        const name = document.getElementById('clone-name').value.trim();
+        const role = document.getElementById('clone-role').value;
+
+        if (!source || !name) {
+          alert('Please select a source agent and enter a name for the clone');
+          return;
+        }
+
+        try {
+          const response = await fetch('/clone-agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source_name: source,
+              new_name: name,
+              role: role === 'same' ? undefined : role,
+              avatar: cloneSelectedAvatar
+            })
+          });
+
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to clone agent');
+          }
+          
+          alert(`Agent ${name} cloned successfully from ${source}!`);
+          hideCloneModal();
+          loadAgents(); // Refresh agent list
+        } catch (error) {
+          console.error('Agent cloning failed:', error);
+          alert(`Error: ${error.message}`);
+        }
+      }
+
+      // Add clone button to agent cards
+      document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('profiles-container');
+        if (container) {
+          container.addEventListener('click', function(e) {
+            if (e.target.classList.contains('clone-btn')) {
+              const agentName = e.target.dataset.agentName;
+              showCloneModal();
+              document.getElementById('source-agent').value = agentName;
+            }
+          });
+        }
+      });
+    </script>
+
 
     <!-- ✅ NEW: Agent-to-Agent Messaging -->
     <div style="margin-top: 50px;">
@@ -312,6 +598,116 @@
       const data = await res.json();
       const reply = data.output || data.error || "Something went wrong!";
       typeOut(`📨 From ${receiver} to ${sender}:\n\n`, talkResponse, reply);
+    }
+
+    // Agent Profile Display
+    async function showAgentProfiles() {
+      const container = document.getElementById('profiles-container');
+      container.innerHTML = '<div style="text-align:center;">Loading agents...</div>';
+      
+      const profilesDiv = document.getElementById('agent-profiles');
+      profilesDiv.style.display = profilesDiv.style.display === 'none' ? 'block' : 'none';
+      
+      if (profilesDiv.style.display === 'none') return;
+
+      const res = await fetch('/agents');
+      const agents = await res.json();
+      
+      container.innerHTML = '';
+      for (const [name, data] of Object.entries(agents)) {
+        const card = document.createElement('div');
+        card.style.background = 'rgba(255,255,255,0.1)';
+        card.style.borderRadius = '12px';
+        card.style.padding = '20px';
+        card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        
+        card.innerHTML = `
+          <div style="font-size: 48px; text-align: center;">${data.avatar || '🤖'}</div>
+          <h3 style="text-align: center; margin: 10px 0;">${name}</h3>
+          <div style="color: #aaa; text-align: center;">Role: ${data.role || 'General'}</div>
+          <div style="margin-top: 15px; font-size: 14px;">
+            <div><strong>Status:</strong> ${data.active ? '🟢 Active' : '🔴 Inactive'}</div>
+            <div><strong>Created:</strong> ${new Date(data.created).toLocaleString()}</div>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // Agent Creation Functions
+    let selectedAvatar = '🤖';
+
+    function showCreateAgentModal() {
+      document.getElementById('agent-modal').style.display = 'block';
+    }
+
+    function hideCreateAgentModal() {
+      document.getElementById('agent-modal').style.display = 'none';
+    }
+
+    function selectAvatar(avatar) {
+      selectedAvatar = avatar;
+      const picker = document.getElementById('avatar-picker');
+      const spans = picker.querySelectorAll('span');
+      spans.forEach(span => {
+        span.style.border = 'none';
+      });
+      event.target.style.border = '2px solid #00f7ff';
+    }
+
+    function updateTraitValue(trait) {
+      const value = document.getElementById(trait).value;
+      let traitText = 'low';
+      if (value > 66) traitText = 'high';
+      else if (value > 33) traitText = 'medium';
+      document.getElementById(`${trait}-value`).innerText = traitText;
+    }
+
+    async function createAgent() {
+      const name = document.getElementById('agent-name').value.trim();
+      const role = document.getElementById('agent-role').value;
+      
+      if (!name) {
+        alert('Please enter an agent name');
+        return;
+      }
+
+      const traits = {
+        empathy: document.getElementById('empathy-value').innerText,
+        curiosity: document.getElementById('curiosity-value').innerText,
+        humor: document.getElementById('humor-value').innerText,
+        logic: document.getElementById('logic-value').innerText,
+        temperament: 'neutral',
+        tone: 'professional'
+      };
+
+      try {
+        const response = await fetch('/create-agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            role,
+            avatar: selectedAvatar,
+            traits
+          })
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create agent');
+        }
+        
+        alert(`Agent ${name} created successfully!`);
+        hideCreateAgentModal();
+        loadAgents(); // Refresh agent list
+        
+        // Debug: Log full response
+        console.log('Agent creation response:', result);
+      } catch (error) {
+        console.error('Agent creation failed:', error);
+        alert(`Error: ${error.message}`);
+      }
     }
 
     // Star particle background

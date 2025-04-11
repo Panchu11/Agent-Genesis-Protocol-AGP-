@@ -1,0 +1,123 @@
+:root {
+    --bg-dark: #121212;
+    --bg-secondary: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #bbbbbb;
+    --accent-blue: #3a86ff;
+    --accent-blue-hover: #2667cc;
+    --border-radius: 8px;
+}
+
+body.dark-mode {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.builder-container {
+    display: flex;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.controls-panel, .preview-panel {
+    flex: 1;
+    background-color: var(--bg-secondary);
+    padding: 20px;
+    border-radius: var(--border-radius);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--bg-dark);
+    border: 1px solid #333;
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+}
+
+.trait-slider {
+    margin-bottom: 15px;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.slider-label {
+    min-width: 120px;
+}
+
+input[type="range"] {
+    flex-grow: 1;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #333;
+    border-radius: 4px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.primary-btn {
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.primary-btn:hover {
+    background-color: var(--accent-blue-hover);
+}
+
+.avatar-preview {
+    font-size: 80px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.preview-details {
+    background-color: var(--bg-dark);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-top: 20px;
+}
+
+.preview-item {
+    margin-bottom: 10px;
+}
+
+.preview-label {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.preview-value {
+    font-size: 1.1em;
+}

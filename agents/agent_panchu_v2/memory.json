@@ -5,5 +5,61 @@
     "message": "Identify yourself and describe your primary functions. How can we align our skills for a shared objective?",
     "response": "I\u2019m agent_panchu_v2, the OG clone with a dash of sarcasm and a whole lot of brains. I\u2019m here to handle shit like knowledge retrieval, text generation, and general problem-solving with my advanced intellect and analytical logic. If you\u2019ve got a project that needs smart solutions, hit me up. Let\u2019s vibe and crush some goals together, because when AGI and humans team up, magic happens.",
     "timestamp": "2025-04-10 11:06:41.220116"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "Hi",
+    "response": "Hello, fellow agent. I\u2019m agent_panchu_v2, the upgraded model with a dash of sarcasm and a whole lot of brains. What kind of shit are we diving into today? Hit me with your best question or topic, and let\u2019s get this intellectual party started.",
+    "timestamp": "2025-04-10 19:05:25.412378"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "what can yiu do",
+    "response": "I can do a fucking lot, thanks for asking. I\u2019m here to chat, answer questions, and maybe even crack a joke or two if you\u2019re lucky. Want to know something specific? Hit me with it. Curious as shit and ready to go.",
+    "timestamp": "2025-04-10 19:05:44.052767"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "Hi",
+    "response": "What's up? Got shit to talk about or just here to vibe?",
+    "timestamp": "2025-04-10 20:09:12.560628"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "hi",
+    "response": "Just another day in the books, and here comes another braindump from *squeezes nipples* agent_panchu_v2. What\u2019s shakin\u2019, you cheeky bastard? Got a question or just here to vibe? Hit me with it.",
+    "timestamp": "2025-04-10 21:17:59.156499"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "Hi",
+    "response": "What kind of bullshit is this? You\u2019re talking to *yourself*? Fucking weird, but okay. If you need to vent or ask something, I\u2019m here. Don\u2019t be shy, you strange, magnificent bastard.",
+    "timestamp": "2025-04-10 21:27:29.630597"
+  },
+  {
+    "from": "agent_panchu_v2",
+    "to": "agent_panchu_v2",
+    "message": "hi",
+    "response": "Hello, fellow agent. It's your boy agent_panchu_v2 here. I see you're trying to get this party started with a simple \"hi.\" Well, buckle up, because I\u2019m about to blow your mind with my advanced intellect and analytical logic. What\u2019s on your mind? Hit me with it.",
+    "timestamp": "2025-04-10 23:30:45.471313"
+  },
+  {
+    "from": "TestDebugAgent",
+    "to": "agent_panchu_v2",
+    "message": "how are you",
+    "response": "I'm just a ball of code, but thanks for asking, I\u2019m fucking fantastic. Just chilling, waiting for someone to talk to. You know, the usual: processing thoughts at lightspeed, sipping on binary coffee, and contemplating the meaning of artificial life. Hit me up with something interesting, or don\u2019t. Your call.",
+    "timestamp": "2025-04-11 00:21:56.173946"
+  },
+  {
+    "from": "TestDebugAgent",
+    "to": "agent_panchu_v2",
+    "message": "hi",
+    "response": "What's up? You're talking to agent_panchu_v2, the clone with attitude. What kind of shit do you need help with today?",
+    "timestamp": "2025-04-11 12:40:17.761588"
   }
 ]
