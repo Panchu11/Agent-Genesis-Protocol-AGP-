@@ -29,12 +29,14 @@ TRAITS_FILE = "agent_traits.json"
 DB_FILE = "agp_memory.db"
 AGENTS_DIR = "agents"
 REGISTRY_FILE = os.path.join(AGENTS_DIR, "registry.json")
+VOICE_SETTINGS_FILE = "voice_settings.json"
 
 os.makedirs(AGENTS_DIR, exist_ok=True)
 for file_path, default in [
     (REPUTATION_FILE, {}),
     (TRAITS_FILE, {"temperament": "neutral", "humor": "medium", "curiosity": "high"}),
-    (REGISTRY_FILE, {})
+    (REGISTRY_FILE, {}),
+    (VOICE_SETTINGS_FILE, {"enabled": False, "voice": None, "rate": 1.0, "pitch": 1.0, "volume": 1.0})
 ]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
@@ -535,6 +537,32 @@ def get_emotion_history():
         "trend": trend,
         "history": history
     })
+
+@app.route("/voice-settings", methods=["GET", "POST"])
+def voice_settings():
+    if request.method == "GET":
+        # Return current voice settings
+        return jsonify(load_json(VOICE_SETTINGS_FILE))
+    else:
+        # Update voice settings
+        data = request.json
+        settings = load_json(VOICE_SETTINGS_FILE)
+
+        # Update settings with new values
+        for key in ["enabled", "rate", "pitch", "volume"]:
+            if key in data:
+                settings[key] = data[key]
+
+        # Handle voice separately since it's an object and can't be directly serialized
+        if "voiceName" in data and "voiceURI" in data:
+            settings["voice"] = {
+                "name": data["voiceName"],
+                "uri": data["voiceURI"],
+                "lang": data.get("voiceLang", "en-US")
+            }
+
+        save_json(VOICE_SETTINGS_FILE, settings)
+        return jsonify({"message": "Voice settings updated successfully", "settings": settings})
 
 @app.route("/analyze-emotion", methods=["POST"])
 def analyze_emotion():

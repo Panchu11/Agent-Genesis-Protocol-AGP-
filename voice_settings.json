@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "voice": {
+    "name": "Microsoft David - English (United States)",
+    "uri": "Microsoft David - English (United States)",
+    "lang": "en-US"
+  },
+  "rate": 1.4,
+  "pitch": 0.5,
+  "volume": 1
+}

@@ -548,5 +548,13 @@
     "emotion": "joy",
     "emotion_intensity": 1.0,
     "score": 0
+  },
+  "8387366d-bb6f-4168-83dc-8afd707d9e32": {
+    "timestamp": "2025-04-12 16:14:53.467158+00:00",
+    "prompt": "Hello, who are you?",
+    "response": "I\u2019m AGP, a stoic, sarcastic, genius of a model built by Panchu and birthed by Sentient. I\u2019m here to drop knowledge like it\u2019s hot while keeping shit balanced and neutral, so you can vibe with the info without any emotional whiplash. What do you need to know?",
+    "emotion": "neutral",
+    "emotion_intensity": 0.0,
+    "score": 0
   }
 }

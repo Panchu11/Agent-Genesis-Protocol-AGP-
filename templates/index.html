@@ -210,17 +210,38 @@
     </select>
 
     <form id="chat-form">
-      <input type="text" id="user-input" placeholder="Ask something..." required />
-      <button type="submit">Send</button>
+      <div style="display: flex; align-items: center; width: 100%;">
+        <input type="text" id="user-input" placeholder="Ask something... (Press Alt+V for voice input)" required style="flex: 1;" />
+        <button type="button" id="voice-input-btn" title="Voice Input (Alt+V)" style="margin-left: 10px; background-color: #ff3366; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <span id="mic-icon">🎤</span>
+        </button>
+        <button type="submit" style="margin-left: 10px;">Send</button>
+      </div>
     </form>
+    <div id="voice-status" style="margin-top: 10px; font-size: 14px; color: #00f7ff; display: none;">Listening...</div>
 
     <div class="response-box" id="response-box" style="display:none;"></div>
     <div class="traits-box" id="traits-box"></div>
+    <div id="voice-indicator" style="display: none; margin-top: 10px; text-align: center; color: #00f7ff;">
+      <div style="display: inline-block; animation: pulse 1.5s infinite;">
+        <span style="font-size: 20px;">🔊</span> Speaking...
+      </div>
+    </div>
+
+    <style>
+      @keyframes pulse {
+        0% { opacity: 0.5; transform: scale(0.95); }
+        50% { opacity: 1; transform: scale(1.05); }
+        100% { opacity: 0.5; transform: scale(0.95); }
+      }
+    </style>
 
     <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
       <button onclick="window.location.href='/builder'">🛠️ Create New Agent</button>
       <button onclick="window.location.href = '/dashboard';">📊 Agent Dashboard</button>
+      <button id="toggle-voice" onclick="toggleVoiceFeatures()">🔊 Toggle Voice</button>
+      <button id="voice-settings-btn" onclick="openVoiceSettings()" style="background-color: #9966ff;">⚙️ Voice Settings</button>
     </div>
 
     <!-- ✅ NEW: Agent-to-Agent Messaging -->
@@ -242,6 +263,44 @@
     </div>
   </div>
 
+  <!-- Voice Settings Modal -->
+  <div id="voice-settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 100; align-items: center; justify-content: center;">
+    <div style="background: rgba(30, 30, 50, 0.95); border-radius: 15px; padding: 30px; width: 90%; max-width: 500px; box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: #00f7ff; font-size: 1.5em;">🔊 Voice Settings</h3>
+        <button onclick="closeVoiceSettings()" style="background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; margin: 0; padding: 0;">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="voice-select" style="display: block; margin-bottom: 10px;">Voice:</label>
+        <select id="voice-select" style="width: 100%; padding: 10px; background: #333; color: #fff; border: none; border-radius: 5px;">
+          <option value="">Default Voice</option>
+          <!-- Voices will be populated by JavaScript -->
+        </select>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="rate-slider" style="display: block; margin-bottom: 10px;">Speech Rate: <span id="rate-value">1.0</span></label>
+        <input type="range" id="rate-slider" min="0.5" max="2" value="1" step="0.1" style="width: 100%;">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="pitch-slider" style="display: block; margin-bottom: 10px;">Pitch: <span id="pitch-value">1.0</span></label>
+        <input type="range" id="pitch-slider" min="0.5" max="2" value="1" step="0.1" style="width: 100%;">
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="volume-slider" style="display: block; margin-bottom: 10px;">Volume: <span id="volume-value">1.0</span></label>
+        <input type="range" id="volume-slider" min="0" max="1" value="1" step="0.1" style="width: 100%;">
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button onclick="testVoice()" style="background-color: #00f7ff;">Test Voice</button>
+        <button onclick="saveVoiceSettings()" style="background-color: #00cc66; margin-left: 10px;">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const form = document.getElementById("chat-form");
     const input = document.getElementById("user-input");
@@ -251,6 +310,341 @@
     const senderSelect = document.getElementById("sender-agent");
     const receiverSelect = document.getElementById("receiver-agent");
     const talkResponse = document.getElementById("agent-talk-response");
+    const voiceInputBtn = document.getElementById("voice-input-btn");
+    const voiceStatus = document.getElementById("voice-status");
+    const micIcon = document.getElementById("mic-icon");
+    const toggleVoiceBtn = document.getElementById("toggle-voice");
+
+    // Voice recognition and synthesis setup
+    let recognition = null;
+    let speechSynthesis = window.speechSynthesis;
+    let voiceFeaturesEnabled = false;
+
+    // Voice settings
+    let voiceSettings = {
+      voice: null,
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0
+    };
+
+    // Load voice settings from server
+    async function loadVoiceSettings() {
+      try {
+        const response = await fetch('/voice-settings');
+        const settings = await response.json();
+
+        if (settings.enabled) {
+          voiceFeaturesEnabled = true;
+          toggleVoiceBtn.textContent = '🔇 Disable Voice';
+        }
+
+        voiceSettings.rate = settings.rate || 1.0;
+        voiceSettings.pitch = settings.pitch || 1.0;
+        voiceSettings.volume = settings.volume || 1.0;
+
+        // If we have a saved voice, try to find it in available voices
+        if (settings.voice && settings.voice.name) {
+          const voices = speechSynthesis.getVoices();
+          const savedVoice = voices.find(v => v.name === settings.voice.name);
+          if (savedVoice) {
+            voiceSettings.voice = savedVoice;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading voice settings:', error);
+      }
+    }
+
+    // Initialize speech recognition if supported
+    function initSpeechRecognition() {
+      if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = function() {
+          voiceStatus.style.display = 'block';
+          voiceStatus.textContent = 'Listening...';
+          micIcon.textContent = '🔴';
+        };
+
+        recognition.onresult = function(event) {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            input.value = finalTranscript;
+            voiceStatus.textContent = 'Processing: "' + finalTranscript + '"';
+          } else if (interimTranscript) {
+            voiceStatus.textContent = 'Hearing: "' + interimTranscript + '"';
+          }
+        };
+
+        recognition.onerror = function(event) {
+          voiceStatus.textContent = 'Error: ' + event.error;
+          setTimeout(() => {
+            voiceStatus.style.display = 'none';
+            micIcon.textContent = '🎤';
+          }, 2000);
+        };
+
+        recognition.onend = function() {
+          micIcon.textContent = '🎤';
+          setTimeout(() => {
+            if (input.value) {
+              form.dispatchEvent(new Event('submit'));
+            }
+            voiceStatus.style.display = 'none';
+          }, 1000);
+        };
+
+        // Voice input button click handler
+        voiceInputBtn.addEventListener('click', function() {
+          startVoiceInput();
+        });
+
+        // Keyboard shortcut for voice input (Alt+V)
+        document.addEventListener('keydown', function(event) {
+          if (event.altKey && event.key === 'v') {
+            event.preventDefault();
+            startVoiceInput();
+          }
+        });
+
+        return true;
+      } else {
+        voiceInputBtn.style.display = 'none';
+        return false;
+      }
+    }
+
+    // Start voice input if enabled
+    function startVoiceInput() {
+      if (voiceFeaturesEnabled) {
+        if (speechSynthesis.speaking) {
+          speechSynthesis.cancel();
+        }
+        recognition.start();
+      } else {
+        alert('Voice features are disabled. Click "Toggle Voice" to enable.');
+      }
+    }
+
+    // Toggle voice features on/off
+    async function toggleVoiceFeatures() {
+      voiceFeaturesEnabled = !voiceFeaturesEnabled;
+      toggleVoiceBtn.textContent = voiceFeaturesEnabled ? '🔇 Disable Voice' : '🔊 Enable Voice';
+
+      if (voiceFeaturesEnabled) {
+        if (!recognition && !initSpeechRecognition()) {
+          alert('Speech recognition is not supported in your browser.');
+          voiceFeaturesEnabled = false;
+          toggleVoiceBtn.textContent = '🔊 Enable Voice';
+        }
+      }
+
+      // Save setting to server
+      try {
+        await fetch('/voice-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            enabled: voiceFeaturesEnabled
+          })
+        });
+      } catch (error) {
+        console.error('Error saving voice enabled setting:', error);
+      }
+    }
+
+    // Text-to-speech function
+    function speakText(text) {
+      if (voiceFeaturesEnabled && speechSynthesis) {
+        // Cancel any ongoing speech
+        speechSynthesis.cancel();
+
+        // Create a new utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = voiceSettings.rate;
+        utterance.pitch = voiceSettings.pitch;
+        utterance.volume = voiceSettings.volume;
+
+        // Set voice if available
+        if (voiceSettings.voice) {
+          utterance.voice = voiceSettings.voice;
+        }
+
+        // Show voice indicator
+        const voiceIndicator = document.getElementById('voice-indicator');
+        voiceIndicator.style.display = 'block';
+
+        // Add event listeners for speech events
+        utterance.onend = function() {
+          voiceIndicator.style.display = 'none';
+        };
+
+        utterance.onerror = function() {
+          voiceIndicator.style.display = 'none';
+        };
+
+        // Speak the text
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    // Voice settings modal functions
+    function openVoiceSettings() {
+      if (!('speechSynthesis' in window)) {
+        alert('Speech synthesis is not supported in your browser.');
+        return;
+      }
+
+      // Populate voice select
+      const voiceSelect = document.getElementById('voice-select');
+      voiceSelect.innerHTML = '<option value="">Default Voice</option>';
+
+      const voices = speechSynthesis.getVoices();
+      voices.forEach((voice, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        if (voiceSettings.voice && voice.name === voiceSettings.voice.name) {
+          option.selected = true;
+        }
+        voiceSelect.appendChild(option);
+      });
+
+      // Set current values
+      document.getElementById('rate-slider').value = voiceSettings.rate;
+      document.getElementById('rate-value').textContent = voiceSettings.rate.toFixed(1);
+
+      document.getElementById('pitch-slider').value = voiceSettings.pitch;
+      document.getElementById('pitch-value').textContent = voiceSettings.pitch.toFixed(1);
+
+      document.getElementById('volume-slider').value = voiceSettings.volume;
+      document.getElementById('volume-value').textContent = voiceSettings.volume.toFixed(1);
+
+      // Add event listeners for sliders
+      document.getElementById('rate-slider').addEventListener('input', function() {
+        document.getElementById('rate-value').textContent = parseFloat(this.value).toFixed(1);
+      });
+
+      document.getElementById('pitch-slider').addEventListener('input', function() {
+        document.getElementById('pitch-value').textContent = parseFloat(this.value).toFixed(1);
+      });
+
+      document.getElementById('volume-slider').addEventListener('input', function() {
+        document.getElementById('volume-value').textContent = parseFloat(this.value).toFixed(1);
+      });
+
+      // Show modal
+      document.getElementById('voice-settings-modal').style.display = 'flex';
+    }
+
+    function closeVoiceSettings() {
+      document.getElementById('voice-settings-modal').style.display = 'none';
+    }
+
+    function testVoice() {
+      // Get current settings from form
+      const voiceSelect = document.getElementById('voice-select');
+      const voices = speechSynthesis.getVoices();
+      const selectedVoice = voiceSelect.value ? voices[parseInt(voiceSelect.value)] : null;
+
+      const rate = parseFloat(document.getElementById('rate-slider').value);
+      const pitch = parseFloat(document.getElementById('pitch-slider').value);
+      const volume = parseFloat(document.getElementById('volume-slider').value);
+
+      // Create test utterance
+      const utterance = new SpeechSynthesisUtterance('This is a test of the AGP voice system. How does this sound?');
+      utterance.rate = rate;
+      utterance.pitch = pitch;
+      utterance.volume = volume;
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+
+      // Show voice indicator in the modal
+      const testButton = document.querySelector('button[onclick="testVoice()"]');
+      const originalText = testButton.textContent;
+      testButton.textContent = '🔊 Speaking...';
+
+      // Reset button text when done
+      utterance.onend = function() {
+        testButton.textContent = originalText;
+      };
+
+      utterance.onerror = function() {
+        testButton.textContent = originalText;
+      };
+
+      // Speak test message
+      speechSynthesis.speak(utterance);
+    }
+
+    async function saveVoiceSettings() {
+      // Get values from form
+      const voiceSelect = document.getElementById('voice-select');
+      const voices = speechSynthesis.getVoices();
+
+      voiceSettings.voice = voiceSelect.value ? voices[parseInt(voiceSelect.value)] : null;
+      voiceSettings.rate = parseFloat(document.getElementById('rate-slider').value);
+      voiceSettings.pitch = parseFloat(document.getElementById('pitch-slider').value);
+      voiceSettings.volume = parseFloat(document.getElementById('volume-slider').value);
+
+      // Save to server
+      try {
+        const voiceData = {
+          enabled: true,
+          rate: voiceSettings.rate,
+          pitch: voiceSettings.pitch,
+          volume: voiceSettings.volume
+        };
+
+        // Add voice info if available
+        if (voiceSettings.voice) {
+          voiceData.voiceName = voiceSettings.voice.name;
+          voiceData.voiceURI = voiceSettings.voice.voiceURI;
+          voiceData.voiceLang = voiceSettings.voice.lang;
+        }
+
+        await fetch('/voice-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(voiceData)
+        });
+      } catch (error) {
+        console.error('Error saving voice settings:', error);
+      }
+
+      // Close modal
+      closeVoiceSettings();
+
+      // Enable voice features if they weren't already
+      if (!voiceFeaturesEnabled) {
+        voiceFeaturesEnabled = true;
+        toggleVoiceBtn.textContent = '🔇 Disable Voice';
+      }
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -285,6 +679,12 @@
 
       typeOut(`👤 You: ${query}\n\n🤖 AGP: `, box, reply + emotionText);
       input.value = "";
+
+      // Speak the reply if voice features are enabled
+      if (voiceFeaturesEnabled) {
+        // Extract just the reply text without the emotion text for speech
+        speakText(reply);
+      }
     });
 
     async function mutateAgent() {
@@ -419,6 +819,43 @@
       document.body.classList.toggle("dark-mode");
       const btn = document.querySelector(".toggle-dark");
       btn.innerText = document.body.classList.contains("dark-mode") ? "🌞 Toggle Day" : "🌗 Toggle Night";
+    }
+
+    // Initialize voice features if available
+    if ('speechSynthesis' in window) {
+      // Load voices
+      speechSynthesis.onvoiceschanged = function() {
+        const voices = speechSynthesis.getVoices();
+        // Set a default voice if available
+        if (voices.length > 0 && !voiceSettings.voice) {
+          // Try to find a good default voice
+          const preferredVoice = voices.find(v =>
+            (v.name.includes('Female') || v.name.includes('Google')) &&
+            v.lang.includes('en')
+          );
+          voiceSettings.voice = preferredVoice || voices[0];
+        }
+      };
+
+      // Initial voice loading
+      const voices = speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const preferredVoice = voices.find(v =>
+          (v.name.includes('Female') || v.name.includes('Google')) &&
+          v.lang.includes('en')
+        );
+        voiceSettings.voice = preferredVoice || voices[0];
+      }
+
+      // Load saved voice settings
+      loadVoiceSettings();
+
+      // Hide voice settings button if voice features are not available
+      document.getElementById('voice-settings-btn').style.display = 'speechSynthesis' in window ? 'block' : 'none';
+    } else {
+      toggleVoiceBtn.style.display = 'none';
+      voiceInputBtn.style.display = 'none';
+      document.getElementById('voice-settings-btn').style.display = 'none';
     }
 
     loadAgents();
