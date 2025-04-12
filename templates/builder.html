@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AGP - Agent Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f1f1f1;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    canvas#bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: transparent;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 40px auto;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .logo-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .logo-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-left img {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+    }
+
+    h1 {
+      font-size: 2em;
+      color: #00f7ff;
+      text-shadow: 0 0 10px #00f7ff;
+    }
+
+    h2 {
+      font-size: 1.5em;
+      color: #00f7ff;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      border-radius: 12px;
+      background-color: #222;
+      color: #fff;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      border: none;
+    }
+
+    button {
+      background-color: #00f7ff;
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 12px;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #02d0d0;
+      transform: translateY(-2px);
+    }
+
+    .toggle-dark {
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background: #333;
+      color: #ccc;
+      border: 1px solid #444;
+    }
+
+    .slider-container {
+      margin-bottom: 20px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .slider-label span {
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #333;
+      outline: none;
+      margin-bottom: 15px;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #00f7ff;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00f7ff;
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #00f7ff;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00f7ff;
+    }
+
+    .trait-group {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 30px;
+    }
+
+    .trait-group h3 {
+      color: #00f7ff;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+
+    .avatar-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .avatar-option {
+      font-size: 24px;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #333;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .avatar-option:hover {
+      background: #444;
+      transform: scale(1.1);
+    }
+
+    .avatar-option.selected {
+      background: #00f7ff;
+      color: #000;
+      box-shadow: 0 0 15px #00f7ff;
+    }
+
+    .footer {
+      margin-top: 40px;
+      font-size: 0.9em;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+    }
+
+    .success-message {
+      background: rgba(0, 255, 0, 0.1);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .dark-mode {
+      background: #f1f1f1;
+      color: #111;
+    }
+
+    .dark-mode .container {
+      background: rgba(255, 255, 255, 0.7);
+      color: #111;
+    }
+
+    .dark-mode input[type="text"],
+    .dark-mode select {
+      background-color: #f1f1f1;
+      color: #111;
+    }
+
+    .dark-mode button {
+      background-color: #111;
+      color: #00f7ff;
+    }
+
+    .dark-mode .toggle-dark {
+      background: #eee;
+      color: #111;
+    }
+
+    .dark-mode .slider {
+      background: #ccc;
+    }
+
+    .dark-mode .trait-group {
+      background: rgba(200, 200, 200, 0.3);
+    }
+
+    .dark-mode .avatar-option {
+      background: #ddd;
+      color: #333;
+    }
+
+    .dark-mode .avatar-option.selected {
+      background: #111;
+      color: #00f7ff;
+      box-shadow: 0 0 15px #111;
+    }
+
+    .dark-mode h1, .dark-mode h2, .dark-mode h3 {
+      color: #222;
+      text-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="container">
+    <div class="logo-bar">
+      <div class="logo-left">
+        <img src="/static/LOGO.png" alt="AGP Logo">
+        <h1>Agent Builder</h1>
+      </div>
+      <button class="toggle-dark" onclick="toggleDark()">🌗 Toggle Night</button>
+    </div>
+
+    <div class="builder-form">
+      <h2>🧠 Create Your Custom Agent</h2>
+      
+      <div>
+        <label for="agent-name">Agent Name:</label>
+        <input type="text" id="agent-name" placeholder="Enter a unique name for your agent..." required />
+      </div>
+      
+      <div>
+        <label for="agent-role">Agent Role:</label>
+        <select id="agent-role">
+          <option value="Assistant">Assistant</option>
+          <option value="Explorer">Explorer</option>
+          <option value="Strategist">Strategist</option>
+          <option value="Creative">Creative</option>
+          <option value="Analyst">Analyst</option>
+          <option value="Philosopher">Philosopher</option>
+          <option value="Rebel">Rebel</option>
+          <option value="Custom">Custom Role...</option>
+        </select>
+      </div>
+      
+      <div id="custom-role-container" style="display: none;">
+        <label for="custom-role">Custom Role Name:</label>
+        <input type="text" id="custom-role" placeholder="Enter a custom role..." />
+      </div>
+      
+      <div>
+        <label>Select Avatar:</label>
+        <div class="avatar-selector" id="avatar-selector">
+          <div class="avatar-option selected" data-avatar="🤖">🤖</div>
+          <div class="avatar-option" data-avatar="🧠">🧠</div>
+          <div class="avatar-option" data-avatar="👾">👾</div>
+          <div class="avatar-option" data-avatar="🦾">🦾</div>
+          <div class="avatar-option" data-avatar="🔮">🔮</div>
+          <div class="avatar-option" data-avatar="👁️">👁️</div>
+          <div class="avatar-option" data-avatar="🌌">🌌</div>
+          <div class="avatar-option" data-avatar="🚀">🚀</div>
+          <div class="avatar-option" data-avatar="🧬">🧬</div>
+          <div class="avatar-option" data-avatar="⚡">⚡</div>
+        </div>
+      </div>
+      
+      <div class="trait-group">
+        <h3>Personality Traits</h3>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Temperament:</span>
+            <span id="temperament-value">Neutral</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="temperament-slider">
+          <div class="slider-label">
+            <span>Calm</span>
+            <span>Neutral</span>
+            <span>Aggressive</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Humor:</span>
+            <span id="humor-value">Medium</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="humor-slider">
+          <div class="slider-label">
+            <span>Serious</span>
+            <span>Balanced</span>
+            <span>Playful</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Curiosity:</span>
+            <span id="curiosity-value">Medium</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="curiosity-slider">
+          <div class="slider-label">
+            <span>Low</span>
+            <span>Medium</span>
+            <span>High</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="trait-group">
+        <h3>Communication Style</h3>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Tone:</span>
+            <span id="tone-value">Neutral</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="tone-slider">
+          <div class="slider-label">
+            <span>Formal</span>
+            <span>Neutral</span>
+            <span>Casual</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Verbosity:</span>
+            <span id="verbosity-value">Balanced</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="verbosity-slider">
+          <div class="slider-label">
+            <span>Concise</span>
+            <span>Balanced</span>
+            <span>Detailed</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Sarcasm:</span>
+            <span id="sarcasm-value">Low</span>
+          </div>
+          <input type="range" min="1" max="5" value="2" class="slider" id="sarcasm-slider">
+          <div class="slider-label">
+            <span>None</span>
+            <span>Moderate</span>
+            <span>High</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="trait-group">
+        <h3>Cognitive Traits</h3>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Intellect:</span>
+            <span id="intellect-value">Advanced</span>
+          </div>
+          <input type="range" min="1" max="5" value="4" class="slider" id="intellect-slider">
+          <div class="slider-label">
+            <span>Basic</span>
+            <span>Advanced</span>
+            <span>Genius</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Logic Style:</span>
+            <span id="logic-value">Analytical</span>
+          </div>
+          <input type="range" min="1" max="5" value="4" class="slider" id="logic-slider">
+          <div class="slider-label">
+            <span>Emotional</span>
+            <span>Balanced</span>
+            <span>Analytical</span>
+          </div>
+        </div>
+        
+        <div class="slider-container">
+          <div class="slider-label">
+            <span>Creativity:</span>
+            <span id="creativity-value">Medium</span>
+          </div>
+          <input type="range" min="1" max="5" value="3" class="slider" id="creativity-slider">
+          <div class="slider-label">
+            <span>Practical</span>
+            <span>Balanced</span>
+            <span>Imaginative</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="success-message" id="success-message">
+        Agent created successfully! You can now chat with your agent from the main page.
+      </div>
+      
+      <div class="nav-buttons">
+        <button onclick="window.location.href='/'">← Back to Chat</button>
+        <button onclick="createAgent()" id="create-button">Create Agent</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      Powered by <strong>Sentient</strong> 🤖 | Built by <strong>Panchu</strong>
+    </div>
+  </div>
+
+  <script>
+    // Slider value display updates
+    const sliders = {
+      'temperament': ['Calm', 'Reserved', 'Neutral', 'Assertive', 'Aggressive'],
+      'humor': ['Serious', 'Dry', 'Medium', 'Witty', 'Playful'],
+      'curiosity': ['Low', 'Moderate', 'Medium', 'Inquisitive', 'High'],
+      'tone': ['Formal', 'Professional', 'Neutral', 'Friendly', 'Casual'],
+      'verbosity': ['Concise', 'Brief', 'Balanced', 'Elaborate', 'Detailed'],
+      'sarcasm': ['None', 'Low', 'Moderate', 'Frequent', 'High'],
+      'intellect': ['Basic', 'Standard', 'Advanced', 'Scholarly', 'Genius'],
+      'logic': ['Emotional', 'Intuitive', 'Balanced', 'Analytical', 'Rigorous'],
+      'creativity': ['Practical', 'Conventional', 'Medium', 'Creative', 'Imaginative']
+    };
+    
+    // Initialize sliders
+    Object.keys(sliders).forEach(trait => {
+      const slider = document.getElementById(`${trait}-slider`);
+      const valueDisplay = document.getElementById(`${trait}-value`);
+      
+      slider.addEventListener('input', function() {
+        valueDisplay.textContent = sliders[trait][this.value - 1];
+      });
+      
+      // Set initial value
+      valueDisplay.textContent = sliders[trait][slider.value - 1];
+    });
+    
+    // Avatar selection
+    const avatarOptions = document.querySelectorAll('.avatar-option');
+    let selectedAvatar = '🤖';
+    
+    avatarOptions.forEach(option => {
+      option.addEventListener('click', function() {
+        avatarOptions.forEach(opt => opt.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedAvatar = this.getAttribute('data-avatar');
+      });
+    });
+    
+    // Custom role toggle
+    const roleSelect = document.getElementById('agent-role');
+    const customRoleContainer = document.getElementById('custom-role-container');
+    
+    roleSelect.addEventListener('change', function() {
+      if (this.value === 'Custom') {
+        customRoleContainer.style.display = 'block';
+      } else {
+        customRoleContainer.style.display = 'none';
+      }
+    });
+    
+    // Dark mode toggle
+    function toggleDark() {
+      document.body.classList.toggle('dark-mode');
+      const btn = document.querySelector('.toggle-dark');
+      btn.innerText = document.body.classList.contains('dark-mode')
+        ? '🌞 Toggle Day'
+        : '🌗 Toggle Night';
+    }
+    
+    // Create agent function
+    async function createAgent() {
+      const nameInput = document.getElementById('agent-name');
+      const name = nameInput.value.trim();
+      
+      if (!name) {
+        alert('Please enter a name for your agent');
+        return;
+      }
+      
+      // Get role (custom or selected)
+      let role = roleSelect.value;
+      if (role === 'Custom') {
+        const customRole = document.getElementById('custom-role').value.trim();
+        if (!customRole) {
+          alert('Please enter a custom role name');
+          return;
+        }
+        role = customRole;
+      }
+      
+      // Collect trait values
+      const traits = {};
+      Object.keys(sliders).forEach(trait => {
+        const slider = document.getElementById(`${trait}-slider`);
+        traits[trait] = sliders[trait][slider.value - 1].toLowerCase();
+      });
+      
+      // Prepare agent data
+      const agentData = {
+        name: name,
+        role: role,
+        avatar: selectedAvatar,
+        traits: traits
+      };
+      
+      try {
+        // Disable button to prevent multiple submissions
+        const createButton = document.getElementById('create-button');
+        createButton.disabled = true;
+        createButton.textContent = 'Creating...';
+        
+        // Send to backend
+        const response = await fetch('/create-agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(agentData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Show success message
+          const successMessage = document.getElementById('success-message');
+          successMessage.style.display = 'block';
+          successMessage.textContent = result.message || 'Agent created successfully!';
+          
+          // Reset form
+          nameInput.value = '';
+          roleSelect.value = 'Assistant';
+          customRoleContainer.style.display = 'none';
+          
+          // Reset sliders
+          Object.keys(sliders).forEach(trait => {
+            const slider = document.getElementById(`${trait}-slider`);
+            slider.value = 3;
+            const valueDisplay = document.getElementById(`${trait}-value`);
+            valueDisplay.textContent = sliders[trait][2];
+          });
+          
+          // Reset avatar
+          avatarOptions.forEach(opt => opt.classList.remove('selected'));
+          document.querySelector('[data-avatar="🤖"]').classList.add('selected');
+          selectedAvatar = '🤖';
+        } else {
+          alert(result.error || 'Failed to create agent');
+        }
+      } catch (error) {
+        alert('Error creating agent: ' + error.message);
+      } finally {
+        // Re-enable button
+        const createButton = document.getElementById('create-button');
+        createButton.disabled = false;
+        createButton.textContent = 'Create Agent';
+      }
+    }
+    
+    // Star particle background
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let stars = [];
+
+    function initStars() {
+      stars = [];
+      for (let i = 0; i < 150; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.2,
+          dy: (Math.random() - 0.5) * 0.2,
+          alpha: Math.random()
+        });
+      }
+    }
+
+    function drawStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      stars.forEach((star) => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+        ctx.fill();
+
+        star.x += star.dx;
+        star.y += star.dy;
+
+        if (star.x < 0) star.x = canvas.width;
+        if (star.x > canvas.width) star.x = 0;
+        if (star.y < 0) star.y = canvas.height;
+        if (star.y > canvas.height) star.y = 0;
+      });
+      requestAnimationFrame(drawStars);
+    }
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initStars();
+    });
+
+    initStars();
+    drawStars();
+  </script>
+</body>
+</html>

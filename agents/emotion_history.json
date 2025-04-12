@@ -1,0 +1,86 @@
+[
+  {
+    "user_id": "default",
+    "text": "i am not feeling good",
+    "analysis": {
+      "dominant_emotion": "neutral",
+      "emotions": {
+        "neutral": 1.0
+      },
+      "intensity": 0.0
+    },
+    "timestamp": "2025-04-12 14:27:04.064039"
+  },
+  {
+    "user_id": "default",
+    "text": "i a so helpless today",
+    "analysis": {
+      "dominant_emotion": "neutral",
+      "emotions": {
+        "joy": 0.0,
+        "sadness": 0.0,
+        "anger": 0.0,
+        "fear": 0.0,
+        "surprise": 0.0,
+        "confusion": 0.0,
+        "neutral": 1.0
+      },
+      "intensity": 0.0
+    },
+    "timestamp": "2025-04-12 14:27:26.454915"
+  },
+  {
+    "user_id": "default",
+    "text": "i am feeling so funny today haha",
+    "analysis": {
+      "dominant_emotion": "joy",
+      "emotions": {
+        "joy": 0.5652173913043479,
+        "sadness": 0.0,
+        "anger": 0.0,
+        "fear": 0.0,
+        "surprise": 0.0,
+        "confusion": 0.0,
+        "neutral": 0.4347826086956522
+      },
+      "intensity": 0.8478260869565218
+    },
+    "timestamp": "2025-04-12 14:27:52.341759"
+  },
+  {
+    "user_id": "default",
+    "text": "we got a new family member today, do you want to know his name. i will make him a great doctor in future",
+    "analysis": {
+      "dominant_emotion": "joy",
+      "emotions": {
+        "joy": 1.0,
+        "sadness": 0.0,
+        "anger": 0.0,
+        "fear": 0.0,
+        "surprise": 0.0,
+        "confusion": 0.0,
+        "neutral": 0.0
+      },
+      "intensity": 1.0
+    },
+    "timestamp": "2025-04-12 14:28:36.899050"
+  },
+  {
+    "user_id": "default",
+    "text": "i am very very happy at the same time sad and lazy",
+    "analysis": {
+      "dominant_emotion": "joy",
+      "emotions": {
+        "joy": 0.6,
+        "sadness": 0.4,
+        "anger": 0.0,
+        "fear": 0.0,
+        "surprise": 0.0,
+        "confusion": 0.0,
+        "neutral": 0.0
+      },
+      "intensity": 1.0
+    },
+    "timestamp": "2025-04-12 15:08:41.684207"
+  }
+]

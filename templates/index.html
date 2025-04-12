@@ -156,6 +156,27 @@
       color: #111;
     }
 
+    /* Emotion display styles */
+    .emotion-display {
+      transition: all 0.3s ease;
+    }
+
+    .dark-mode .emotion-display {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #emotion-icon {
+      transition: transform 0.3s ease;
+    }
+
+    #emotion-icon:hover {
+      transform: scale(1.2);
+    }
+
+    #intensity-fill {
+      transition: width 0.5s ease;
+    }
+
     .dark-mode .response-box {
       background-color: #fff;
       color: #111;
@@ -196,8 +217,10 @@
     <div class="response-box" id="response-box" style="display:none;"></div>
     <div class="traits-box" id="traits-box"></div>
 
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
       <button onclick="mutateAgent()">🧬 Mutate Agent</button>
+      <button onclick="window.location.href='/builder'">🛠️ Create New Agent</button>
+      <button onclick="window.location.href = '/dashboard';">📊 Agent Dashboard</button>
     </div>
 
     <!-- ✅ NEW: Agent-to-Agent Messaging -->
@@ -249,7 +272,18 @@
 
       const data = await res.json();
       const reply = data.output || data.error || "Something went wrong!";
-      typeOut(`👤 You: ${query}\n\n🤖 AGP: `, box, reply);
+
+      // Check if emotion data is available
+      let emotionText = '';
+      if (data.emotion) {
+        const emotion = data.emotion;
+        const emotionIcon = getEmotionIcon(emotion.dominant);
+        const emotionName = capitalizeFirstLetter(emotion.dominant);
+        const intensityPercent = Math.round(emotion.intensity * 100);
+        emotionText = `\n\n[Detected Emotion: ${emotionIcon} ${emotionName} (${intensityPercent}% intensity)]`;
+      }
+
+      typeOut(`👤 You: ${query}\n\n🤖 AGP: `, box, reply + emotionText);
       input.value = "";
     });
 
@@ -360,6 +394,32 @@
       canvas.height = window.innerHeight;
       initStars();
     });
+
+    // Emotion display functions
+
+    function getEmotionIcon(emotion) {
+      const icons = {
+        'joy': '😄',
+        'sadness': '😔',
+        'anger': '😠',
+        'fear': '😨',
+        'surprise': '😮',
+        'confusion': '😕',
+        'neutral': '😐'
+      };
+
+      return icons[emotion] || '😐';
+    }
+
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    function toggleDark() {
+      document.body.classList.toggle("dark-mode");
+      const btn = document.querySelector(".toggle-dark");
+      btn.innerText = document.body.classList.contains("dark-mode") ? "🌞 Toggle Day" : "🌗 Toggle Night";
+    }
 
     loadAgents();
     initStars();

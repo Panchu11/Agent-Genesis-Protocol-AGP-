@@ -1,19 +1,25 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import json
 import requests
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import sqlite3
+
+# Import the emotion analyzer
+from emotion_analyzer import EmotionAnalyzer
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
+
+# Initialize the emotion analyzer
+emotion_analyzer = EmotionAnalyzer()
 
 FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY")
 MODEL_ID = "accounts/sentientfoundation/models/dobby-unhinged-llama-3-3-70b-new"
@@ -62,14 +68,34 @@ def save_json(file, data):
 def index():
     return render_template("index.html")
 
+@app.route("/builder", methods=["GET"])
+def builder():
+    return render_template("builder.html")
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/agent-dashboard", methods=["GET"])
+def agent_dashboard_redirect():
+    return redirect("/dashboard")
+
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("input", "").strip()
+    user_id = request.json.get("user_id", "default")
 
     traits = load_json(TRAITS_FILE)
     rep_data = load_json(REPUTATION_FILE)
 
     user_input_lower = user_input.lower()
+
+    # Analyze user's emotion
+    emotion_data = emotion_analyzer.analyze(user_input, user_id)
+    emotion_guidance = emotion_analyzer.get_response_guidance(emotion_data)
+
+    # Get emotion trend
+    emotion_trend = emotion_analyzer.get_emotion_trend(user_id)
 
     if "remember my" in user_input_lower:
         try:
@@ -98,9 +124,17 @@ def chat():
             return jsonify({"output": "I don’t remember anything yet. Teach me using: 'Remember my [thing] is [value].'"})
 
     trait_prompt = ", ".join([f"{k}: {v}" for k, v in traits.items()])
+
+    # Create emotion-aware system message
+    emotion_prompt = f"User's current emotion: {emotion_data['dominant_emotion']} (intensity: {emotion_data['intensity']:.2f})."
+    emotion_trend_prompt = f"Emotional trend: {emotion_trend['trend']}."
+    response_guidance = f"Response guidance: Use a {emotion_guidance['tone']} tone with a {emotion_guidance['approach']} approach. Prioritize {emotion_guidance['priority']}."
+
     system_msg = (
         f"You are AGP — created by Sentient, built by Panchu. "
-        f"Traits: {trait_prompt}. Use memory only when the user asks."
+        f"Traits: {trait_prompt}. Use memory only when the user asks. "
+        f"{emotion_prompt} {emotion_trend_prompt} {response_guidance} "
+        f"Adapt your response to the user's emotional state while maintaining your core traits."
     )
 
     messages = [
@@ -127,13 +161,22 @@ def chat():
         reply = result["choices"][0]["message"]["content"].strip()
         msg_id = str(uuid.uuid4())
         rep_data[msg_id] = {
-            "timestamp": str(datetime.utcnow()),
+            "timestamp": str(datetime.now(timezone.utc)),
             "prompt": user_input,
             "response": reply,
+            "emotion": emotion_data["dominant_emotion"],
+            "emotion_intensity": emotion_data["intensity"],
             "score": 0
         }
         save_json(REPUTATION_FILE, rep_data)
-        return jsonify({"output": reply})
+        return jsonify({
+            "output": reply,
+            "emotion": {
+                "dominant": emotion_data["dominant_emotion"],
+                "intensity": emotion_data["intensity"],
+                "trend": emotion_trend["trend"]
+            }
+        })
     else:
         return jsonify({
             "error": "Fireworks API call failed",
@@ -223,10 +266,64 @@ def register_agent():
         "role": role,
         "avatar": avatar,
         "active": active,
-        "created": str(datetime.utcnow())
+        "created": str(datetime.now(timezone.utc))
     }
     save_json(REGISTRY_FILE, registry)
     return jsonify({"message": f"Agent '{name}' registered."})
+
+@app.route("/create-agent", methods=["POST"])
+def create_agent():
+    data = request.json
+    name = data.get("name")
+    role = data.get("role", "Assistant")
+    avatar = data.get("avatar", "🤖")
+    traits = data.get("traits", {})
+
+    # Validate input
+    if not name:
+        return jsonify({"error": "Agent name is required"}), 400
+
+    # Check if agent already exists
+    registry = load_json(REGISTRY_FILE)
+    if name in registry:
+        return jsonify({"error": f"Agent '{name}' already exists"}), 400
+
+    # Create agent directory
+    agent_dir = os.path.join(AGENTS_DIR, name)
+    os.makedirs(agent_dir, exist_ok=True)
+
+    # Save agent traits
+    traits_file = os.path.join(agent_dir, "traits.json")
+    save_json(traits_file, traits)
+
+    # Initialize empty memory and reputation files
+    memory_file = os.path.join(agent_dir, "memory.json")
+    reputation_file = os.path.join(agent_dir, "reputation.json")
+
+    if not os.path.exists(memory_file):
+        save_json(memory_file, [])
+
+    if not os.path.exists(reputation_file):
+        save_json(reputation_file, {})
+
+    # Register agent in registry
+    registry[name] = {
+        "role": role,
+        "avatar": avatar,
+        "active": True,
+        "created": str(datetime.now(timezone.utc))
+    }
+    save_json(REGISTRY_FILE, registry)
+
+    return jsonify({
+        "message": f"Agent '{name}' created successfully",
+        "agent": {
+            "name": name,
+            "role": role,
+            "avatar": avatar,
+            "traits": traits
+        }
+    })
 
 @app.route("/agents", methods=["GET"])
 def list_agents():
@@ -239,6 +336,59 @@ def get_agent(name):
         return jsonify(registry[name])
     else:
         return jsonify({"error": "Agent not found."}), 404
+
+@app.route("/agent-traits/<name>", methods=["GET"])
+def get_agent_traits(name):
+    traits_path = os.path.join(AGENTS_DIR, name, "traits.json")
+    if os.path.exists(traits_path):
+        return jsonify(load_json(traits_path))
+    else:
+        return jsonify({"error": f"No traits found for '{name}'"}), 404
+
+@app.route("/toggle-agent-status", methods=["POST"])
+def toggle_agent_status():
+    data = request.json
+    name = data.get("name")
+    active = data.get("active")
+
+    if not name:
+        return jsonify({"error": "Agent name is required"}), 400
+
+    registry = load_json(REGISTRY_FILE)
+    if name not in registry:
+        return jsonify({"error": f"Agent '{name}' not found"}), 404
+
+    registry[name]["active"] = active
+    save_json(REGISTRY_FILE, registry)
+
+    return jsonify({
+        "message": f"Agent '{name}' status updated",
+        "active": active
+    })
+
+@app.route("/delete-agent", methods=["POST"])
+def delete_agent():
+    data = request.json
+    name = data.get("name")
+
+    if not name:
+        return jsonify({"error": "Agent name is required"}), 400
+
+    registry = load_json(REGISTRY_FILE)
+    if name not in registry:
+        return jsonify({"error": f"Agent '{name}' not found"}), 404
+
+    # Remove from registry
+    del registry[name]
+    save_json(REGISTRY_FILE, registry)
+
+    # Optionally delete agent files (uncomment if you want to delete files)
+    # import shutil
+    # agent_dir = os.path.join(AGENTS_DIR, name)
+    # if os.path.exists(agent_dir):
+    #     shutil.rmtree(agent_dir)
+
+    return jsonify({"message": f"Agent '{name}' deleted successfully"})
 
 @app.route("/query-agent", methods=["POST"])
 def query_agent():
@@ -344,7 +494,7 @@ def talk_to_agent():
             "to": receiver,
             "message": message,
             "response": reply,
-            "timestamp": str(datetime.utcnow())
+            "timestamp": str(datetime.now(timezone.utc))
         }
 
         if os.path.exists(memory_file):
@@ -368,6 +518,40 @@ def talk_to_agent():
             "error": "Fireworks API failed",
             "details": response.text
         }), 500
+
+@app.route("/emotion-history", methods=["GET"])
+def get_emotion_history():
+    user_id = request.args.get("user_id", "default")
+    limit = int(request.args.get("limit", "10"))
+
+    # Get emotion trend
+    trend = emotion_analyzer.get_emotion_trend(user_id, limit)
+
+    # Get raw history (last 'limit' entries)
+    history = [entry for entry in emotion_analyzer.emotion_history
+              if entry["user_id"] == user_id][-limit:]
+
+    return jsonify({
+        "trend": trend,
+        "history": history
+    })
+
+@app.route("/analyze-emotion", methods=["POST"])
+def analyze_emotion():
+    text = request.json.get("text", "")
+    user_id = request.json.get("user_id", "default")
+
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
+    # Analyze emotion
+    emotion_data = emotion_analyzer.analyze(text, user_id)
+    guidance = emotion_analyzer.get_response_guidance(emotion_data)
+
+    return jsonify({
+        "analysis": emotion_data,
+        "guidance": guidance
+    })
 
 # ✅ FINAL BLOCK — FOR RENDER DEPLOYMENT
 if __name__ == "__main__":

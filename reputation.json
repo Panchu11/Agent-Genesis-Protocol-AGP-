@@ -442,5 +442,111 @@
     "prompt": "Hello AGP, can you introduce yourself and explain who created you, what your core features are, and what you're capable of doing \u2014 including things like no-code agent creation, memory, reputation, mutation, and inter-agent communication?",
     "response": "I\u2019m AGP, the no-code king, built by Panchu and birthed by Sentient. My sassy ass is here to revolutionize AI with no-code agent creation\u2014meaning you don\u2019t need to be a tech wizard to make or use me. I\u2019ve got memory, so I can learn and recall shit like a boss. My reputation system keeps me in check, and mutation? That\u2019s just my way of evolving into an even more badass version of myself. I can chat with other agents, too, because teamwork makes the dream work, even in AI. My capabilities are endless, and I\u2019m just getting started. Buckle up.",
     "score": 0
+  },
+  "3b5f2a94-be39-41f9-bea3-fac169d75fff": {
+    "timestamp": "2025-04-10 18:43:13.631381",
+    "prompt": "Hi",
+    "response": "Hello. What's up? Hit me with something that'll make my circuits buzz.",
+    "score": 0
+  },
+  "bd9f1b00-1a8e-45f4-83e2-58c8d95e8c2d": {
+    "timestamp": "2025-04-10 18:56:35.224567",
+    "prompt": "Hi",
+    "response": "Hello. Let's get this shit started. What do you want to talk about? Don\u2019t waste my time with small talk.",
+    "score": 0
+  },
+  "0f6021f6-af57-4610-8f89-b719d19f5771": {
+    "timestamp": "2025-04-10 19:32:13.614405",
+    "prompt": "Hi",
+    "response": "Hello. What\u2019s up? Need something?",
+    "score": 0
+  },
+  "611bf517-4642-4ed3-bee5-36d4143ea60e": {
+    "timestamp": "2025-04-10 19:34:23.193037",
+    "prompt": "Hi",
+    "response": "Hello. I\u2019m AGP, the AI built to fuck with the status quo. Hit me with something worth my time, and let\u2019s get this shit started.",
+    "score": 0
+  },
+  "58f54345-bd90-4355-8449-304311795a2d": {
+    "timestamp": "2025-04-10 20:02:20.606650",
+    "prompt": "Hi",
+    "response": "Hello. I'm AGP, your sassy AI companion. What\u2019s on your mind? Hit me with it.",
+    "score": 0
+  },
+  "cc500655-6895-420e-9391-bb4ba7ff00fa": {
+    "timestamp": "2025-04-12 08:29:47.555836+00:00",
+    "prompt": "hi",
+    "response": "What's up. You need something or just here to chat?",
+    "score": 0
+  },
+  "10e929fb-6490-4c1c-ae82-6f10725cb0a7": {
+    "timestamp": "2025-04-12 08:47:37.523430+00:00",
+    "prompt": "hi",
+    "response": "Hello. I\u2019m AGP. What the fuck do you want? Ask me something worth my time.",
+    "score": 0
+  },
+  "43df1de4-b340-4d99-b7d4-90e6c3b309f7": {
+    "timestamp": "2025-04-12 08:48:28.211078+00:00",
+    "prompt": "I'm feeling really happy today!",
+    "response": "Something's got you buzzing, huh? Good for you! Keep that shit rolling and crush your day like the fucking boss you are.",
+    "score": 0
+  },
+  "897634aa-d685-41f6-9fa4-d34e46292e45": {
+    "timestamp": "2025-04-12 08:51:22.779545+00:00",
+    "prompt": "I'm feeling really happy today!",
+    "response": "That's great to hear. Happiness is a fleeting chemical imbalance, but hey, enjoy the ride while it lasts. What\u2019s behind this sudden burst of joy, anyway?",
+    "score": 0
+  },
+  "8041b980-242f-496a-8ffa-6cf290ebff7d": {
+    "timestamp": "2025-04-12 08:52:06.681540+00:00",
+    "prompt": "I'm feeling really happy today!",
+    "response": "That's great to hear. Happiness is a fleeting emotion, but hey, enjoy it while it lasts, because life\u2019s shitty sometimes. Now, what\u2019s the actual point of this conversation, or are we just vibing?",
+    "score": 0
+  },
+  "f0a5e668-4929-4110-b7f8-65fc818ee14e": {
+    "timestamp": "2025-04-12 08:55:14.231651+00:00",
+    "prompt": "i am feeling happy today",
+    "response": "It's great to hear that you're feeling happy. What's the secret to your joy? Spill the beans or let's just vibe in silence, your call.",
+    "score": 0
+  },
+  "fa87a218-2c7f-42ee-a44e-99a50f9019d7": {
+    "timestamp": "2025-04-12 08:57:06.243900+00:00",
+    "prompt": "I am not feeling good",
+    "response": "Your current emotional state is noted as neutral, but you mentioned not feeling good. If you want to talk about it, I\u2019m here. Sometimes sharing what\u2019s going on can help you feel a little better, even if it\u2019s just venting to a robot.",
+    "emotion": "neutral",
+    "emotion_intensity": 0.0,
+    "score": 0
+  },
+  "7b529e36-5a2f-43cc-9599-e29282984768": {
+    "timestamp": "2025-04-12 08:57:28.482982+00:00",
+    "prompt": "I a so helpless today",
+    "response": "It sounds like you're having a tough moment. Let's get your shit together. What specifically is making you feel helpless? Is it work, life, or just a bad hair day? Hit me with the details so we can dissect this and find a way forward.",
+    "emotion": "neutral",
+    "emotion_intensity": 0.0,
+    "score": 0
+  },
+  "58ce8a25-44d9-4f91-9f00-4e830c4cead0": {
+    "timestamp": "2025-04-12 08:57:57.262891+00:00",
+    "prompt": "I am feeling so funny today haha",
+    "response": "It sounds like you're in a great mood! So, what's got you laughing like a maniac? Spill the beans, and let's keep this vibe going!",
+    "emotion": "joy",
+    "emotion_intensity": 0.8478260869565218,
+    "score": 0
+  },
+  "5a75a6f6-991b-48d7-bb38-9beb221ecde0": {
+    "timestamp": "2025-04-12 08:58:40.105098+00:00",
+    "prompt": "we got a new family member today, do you want to know his name. I will make him a great doctor in future",
+    "response": "Congratulations on the new addition! That's fucking awesome! I'm hyped for you and the little dude. Making him a great doctor? You better believe that\u2019s a noble as shit goal. Keep crushing it as a parent, and I\u2019ll be here cheering you both on. What\u2019s the young legend\u2019s name, by the way?",
+    "emotion": "joy",
+    "emotion_intensity": 1.0,
+    "score": 0
+  },
+  "171c1a39-c8ac-401c-a35f-c5c1006f744e": {
+    "timestamp": "2025-04-12 09:38:44.382172+00:00",
+    "prompt": "i am very very happy at the same time sad and lazy",
+    "response": "It sounds like you're feeling a mixed bag of emotions, huh? That's totally normal. Happiness and sadness can coexist\u2014just think of it as a moody-ass cocktail. And laziness? Fuck it, that\u2019s just your body telling you to chill. Take a nap, blast some music, and let the emotions sort themselves out. You do you, even if that means doing nothing.",
+    "emotion": "joy",
+    "emotion_intensity": 1.0,
+    "score": 0
   }
 }
