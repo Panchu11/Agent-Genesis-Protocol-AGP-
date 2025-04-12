@@ -36,7 +36,7 @@ for file_path, default in [
     (REPUTATION_FILE, {}),
     (TRAITS_FILE, {"temperament": "neutral", "humor": "medium", "curiosity": "high"}),
     (REGISTRY_FILE, {}),
-    (VOICE_SETTINGS_FILE, {"enabled": False, "voice": None, "rate": 1.0, "pitch": 1.0, "volume": 1.0})
+    (VOICE_SETTINGS_FILE, {"enabled": False, "voice": None, "rate": 1.0, "pitch": 1.0, "volume": 1.0, "gender": "any", "accent": "any"})
 ]:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
@@ -549,7 +549,7 @@ def voice_settings():
         settings = load_json(VOICE_SETTINGS_FILE)
 
         # Update settings with new values
-        for key in ["enabled", "rate", "pitch", "volume"]:
+        for key in ["enabled", "rate", "pitch", "volume", "gender", "accent"]:
             if key in data:
                 settings[key] = data[key]
 

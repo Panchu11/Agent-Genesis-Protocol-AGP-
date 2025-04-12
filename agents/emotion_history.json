@@ -94,5 +94,23 @@
       "intensity": 0.0
     },
     "timestamp": "2025-04-12 21:44:49.344395"
+  },
+  {
+    "user_id": "default",
+    "text": "i'm feeling really happy today!",
+    "analysis": {
+      "dominant_emotion": "joy",
+      "emotions": {
+        "joy": 0.6,
+        "sadness": 0.0,
+        "anger": 0.0,
+        "fear": 0.0,
+        "surprise": 0.4,
+        "confusion": 0.0,
+        "neutral": 0.0
+      },
+      "intensity": 1.0
+    },
+    "timestamp": "2025-04-12 22:02:14.495628"
   }
 ]
