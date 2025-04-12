@@ -16,6 +16,20 @@
       animation: gradientBG 20s ease infinite;
     }
 
+    /* Loading spinner */
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 247, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #00f7ff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
@@ -372,10 +386,11 @@
 
     <div class="dashboard-header">
       <h2>🧠 Your Agent Network</h2>
-      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
         <button onclick="window.location.href='/'">← Back to Chat</button>
         <button onclick="window.location.href='/builder'" style="background-color: #00cc66;">+ Create New Agent</button>
         <button onclick="refreshAgents()" style="background-color: #ffcc00;">🔄 Refresh</button>
+        <button onclick="openImportModal()" style="background-color: #9966ff;">📤 Import Agent</button>
       </div>
     </div>
 
@@ -426,9 +441,38 @@
     </div>
   </div>
 
+  <!-- Import Agent Modal -->
+  <div id="import-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Import Agent</h3>
+        <button class="close-modal" onclick="closeModal('import-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Select an agent ZIP file to import:</p>
+        <form id="import-form" enctype="multipart/form-data" style="margin-top: 20px;">
+          <input type="file" id="agent-zip" name="file" accept=".zip" style="display: block; margin-bottom: 20px; width: 100%;">
+          <div id="import-status" style="margin-top: 10px; display: none;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="loading-spinner"></div>
+              <span>Importing agent...</span>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('import-modal')">Cancel</button>
+        <button id="import-button" style="background-color: #00cc66;">Import</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Load agents on page load
-    document.addEventListener('DOMContentLoaded', loadAgents);
+    document.addEventListener('DOMContentLoaded', function() {
+      loadAgents();
+      setupImportForm();
+    });
 
     async function loadAgents() {
       try {
@@ -611,11 +655,14 @@
 
         ${traitsHtml}
 
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button onclick="window.location.href='/?agent=${name}'">Chat with Agent</button>
           <button style="background-color: ${data.active ? '#ff3366' : '#00cc66'}"
                   onclick="toggleAgentStatus('${name}', ${!data.active})">
             ${data.active ? 'Deactivate' : 'Activate'}
+          </button>
+          <button style="background-color: #9966ff;" onclick="exportAgent('${name}')">
+            📥 Export Agent
           </button>
         </div>
       `;
@@ -679,6 +726,12 @@
 
     function closeModal(modalId) {
       document.getElementById(modalId).style.display = 'none';
+
+      // Reset import form if closing import modal
+      if (modalId === 'import-modal') {
+        document.getElementById('import-form').reset();
+        document.getElementById('import-status').style.display = 'none';
+      }
     }
 
     function formatDate(dateString) {
@@ -754,10 +807,73 @@
       const modals = document.getElementsByClassName('modal');
       for (let i = 0; i < modals.length; i++) {
         if (event.target === modals[i]) {
-          modals[i].style.display = 'none';
+          closeModal(modals[i].id);
         }
       }
     };
+
+    // Export agent function
+    function exportAgent(name) {
+      window.location.href = `/export-agent/${name}`;
+    }
+
+    // Open import modal
+    function openImportModal() {
+      openModal('import-modal');
+    }
+
+    // Setup import form
+    function setupImportForm() {
+      const importButton = document.getElementById('import-button');
+      const importForm = document.getElementById('import-form');
+      const importStatus = document.getElementById('import-status');
+
+      importButton.addEventListener('click', async function() {
+        const fileInput = document.getElementById('agent-zip');
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert('Please select a ZIP file to import');
+          return;
+        }
+
+        const file = fileInput.files[0];
+        if (!file.name.endsWith('.zip')) {
+          alert('Please select a valid ZIP file');
+          return;
+        }
+
+        // Show loading status
+        importStatus.style.display = 'block';
+        importButton.disabled = true;
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/import-agent', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            closeModal('import-modal');
+            loadAgents();
+          } else {
+            alert(`Error: ${result.error || 'Failed to import agent'}`);
+          }
+        } catch (error) {
+          console.error('Error importing agent:', error);
+          alert('Failed to import agent. Please try again.');
+        } finally {
+          // Hide loading status
+          importStatus.style.display = 'none';
+          importButton.disabled = false;
+        }
+      });
+    }
   </script>
 </body>
 </html>

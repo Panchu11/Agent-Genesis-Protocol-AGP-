@@ -112,5 +112,17 @@
       "intensity": 1.0
     },
     "timestamp": "2025-04-12 22:02:14.495628"
+  },
+  {
+    "user_id": "default",
+    "text": "hi",
+    "analysis": {
+      "dominant_emotion": "neutral",
+      "emotions": {
+        "neutral": 1.0
+      },
+      "intensity": 0.0
+    },
+    "timestamp": "2025-04-12 22:24:00.873644"
   }
 ]

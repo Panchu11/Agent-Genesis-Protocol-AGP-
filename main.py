@@ -8,6 +8,10 @@ import uuid
 from datetime import datetime, timezone
 import random
 import sqlite3
+import zipfile
+import io
+import shutil
+from flask import send_file
 
 # Import the emotion analyzer
 from emotion_analyzer import EmotionAnalyzer
@@ -580,6 +584,123 @@ def analyze_emotion():
         "analysis": emotion_data,
         "guidance": guidance
     })
+
+@app.route("/export-agent/<name>", methods=["GET"])
+def export_agent(name):
+    # Check if agent exists
+    registry = load_json(REGISTRY_FILE)
+    if name not in registry:
+        return jsonify({"error": f"Agent '{name}' not found"}), 404
+
+    agent_dir = os.path.join(AGENTS_DIR, name)
+    if not os.path.exists(agent_dir):
+        return jsonify({"error": f"Agent directory for '{name}' not found"}), 404
+
+    # Create a memory buffer for the ZIP file
+    memory_file = io.BytesIO()
+
+    # Create the ZIP file
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Add agent metadata
+        zf.writestr(f"{name}/metadata.json", json.dumps(registry[name], indent=2))
+
+        # Add agent files
+        for root, _, files in os.walk(agent_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arc_name = os.path.join(name, os.path.relpath(file_path, agent_dir))
+                zf.write(file_path, arc_name)
+
+    # Seek to the beginning of the memory buffer
+    memory_file.seek(0)
+
+    # Return the ZIP file as an attachment
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f"{name}_agent_export.zip"
+    )
+
+@app.route("/import-agent", methods=["POST"])
+def import_agent():
+    # Check if file was uploaded
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not file.filename.endswith('.zip'):
+        return jsonify({"error": "File must be a ZIP archive"}), 400
+
+    # Process the uploaded ZIP file directly from memory
+
+    try:
+        # Extract the ZIP file
+        with zipfile.ZipFile(file, 'r') as zip_ref:
+            # Get the agent name from the first directory in the ZIP
+            agent_name = None
+            for name in zip_ref.namelist():
+                parts = name.split('/')
+                if len(parts) > 0 and parts[0]:
+                    agent_name = parts[0]
+                    break
+
+            if not agent_name:
+                return jsonify({"error": "Invalid agent ZIP format"}), 400
+
+            # Check if agent already exists
+            registry = load_json(REGISTRY_FILE)
+            if agent_name in registry:
+                # Generate a unique name by adding a timestamp
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                new_agent_name = f"{agent_name}_{timestamp}"
+            else:
+                new_agent_name = agent_name
+
+            # Create agent directory
+            agent_dir = os.path.join(AGENTS_DIR, new_agent_name)
+            os.makedirs(agent_dir, exist_ok=True)
+
+            # Extract files to agent directory
+            for item in zip_ref.namelist():
+                # Skip the root directory and metadata file
+                if item == f"{agent_name}/" or item == f"{agent_name}/metadata.json":
+                    continue
+
+                # Rename the agent directory to the new name
+                new_path = item.replace(f"{agent_name}/", f"{new_agent_name}/", 1)
+
+                # Extract the file
+                if item.endswith('/'):
+                    os.makedirs(os.path.join(AGENTS_DIR, new_path), exist_ok=True)
+                else:
+                    with zip_ref.open(item) as source, open(os.path.join(AGENTS_DIR, new_path), 'wb') as target:
+                        shutil.copyfileobj(source, target)
+
+            # Load and update metadata
+            try:
+                with zip_ref.open(f"{agent_name}/metadata.json") as f:
+                    metadata = json.loads(f.read().decode('utf-8'))
+
+                # Update creation timestamp
+                metadata['created'] = str(datetime.now(timezone.utc))
+                metadata['imported'] = True
+
+                # Add to registry
+                registry[new_agent_name] = metadata
+                save_json(REGISTRY_FILE, registry)
+            except Exception as e:
+                return jsonify({"error": f"Error processing metadata: {str(e)}"}), 500
+
+        return jsonify({
+            "message": f"Agent imported successfully as '{new_agent_name}'",
+            "agent_name": new_agent_name
+        })
+    except Exception as e:
+        return jsonify({"error": f"Error importing agent: {str(e)}"}), 500
 
 # ✅ FINAL BLOCK — FOR RENDER DEPLOYMENT
 if __name__ == "__main__":
