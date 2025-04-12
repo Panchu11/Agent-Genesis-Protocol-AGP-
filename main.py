@@ -5,6 +5,7 @@ import os
 import json
 import requests
 import uuid
+import re
 from datetime import datetime, timezone
 import random
 import sqlite3
@@ -46,17 +47,78 @@ for file_path, default in [
         with open(file_path, "w") as f:
             json.dump(default, f, indent=2)
 
-# Ensure SQLite table
+# Ensure SQLite tables
 conn = sqlite3.connect(DB_FILE)
 c = conn.cursor()
+
+# Create the main memories table with additional fields
 c.execute("""
 CREATE TABLE IF NOT EXISTS memories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_input TEXT,
     memory TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    category TEXT DEFAULT 'general',
+    importance INTEGER DEFAULT 5,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_accessed DATETIME,
+    access_count INTEGER DEFAULT 0
 )
 """)
+
+# Check if we need to migrate existing data
+c.execute("PRAGMA table_info(memories)")
+columns = [column[1] for column in c.fetchall()]
+
+# If the old schema is detected (missing new columns), migrate the data
+if 'category' not in columns:
+    # Create a temporary table with the new schema
+    c.execute("""
+    CREATE TABLE memories_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_input TEXT,
+        memory TEXT,
+        category TEXT DEFAULT 'general',
+        importance INTEGER DEFAULT 5,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_accessed DATETIME,
+        access_count INTEGER DEFAULT 0
+    )
+    """)
+
+    # Copy data from the old table to the new one
+    c.execute("""
+    INSERT INTO memories_new (id, user_input, memory, timestamp, last_accessed, access_count)
+    SELECT id, user_input, memory, timestamp, timestamp, 0 FROM memories
+    """)
+
+    # Drop the old table and rename the new one
+    c.execute("DROP TABLE memories")
+    c.execute("ALTER TABLE memories_new RENAME TO memories")
+
+    print("Memory database schema upgraded successfully.")
+
+# Create a memory categories table
+c.execute("""
+CREATE TABLE IF NOT EXISTS memory_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE,
+    description TEXT,
+    color TEXT DEFAULT '#00f7ff'
+)
+""")
+
+# Insert default categories if they don't exist
+default_categories = [
+    ('general', 'General information', '#00f7ff'),
+    ('personal', 'Personal details about the user', '#ff3366'),
+    ('preferences', 'User preferences and likes/dislikes', '#ffcc00'),
+    ('facts', 'Factual information', '#00cc66'),
+    ('events', 'Past or future events', '#9966ff')
+]
+
+for category in default_categories:
+    c.execute("INSERT OR IGNORE INTO memory_categories (name, description, color) VALUES (?, ?, ?)", category)
+
 conn.commit()
 conn.close()
 
@@ -82,6 +144,10 @@ def builder():
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/memory", methods=["GET"])
+def memory_management():
+    return render_template("memory.html")
+
 @app.route("/agent-dashboard", methods=["GET"])
 def agent_dashboard_redirect():
     return redirect("/dashboard")
@@ -103,19 +169,67 @@ def chat():
     # Get emotion trend
     emotion_trend = emotion_analyzer.get_emotion_trend(user_id)
 
-    if "remember my" in user_input_lower:
-        try:
-            parts = user_input_lower.split("remember my", 1)[1].strip().split(" is ")
-            key = parts[0].strip()
-            value = parts[1].strip()
-            conn = sqlite3.connect(DB_FILE)
-            c = conn.cursor()
-            c.execute("INSERT INTO memories (user_input, memory) VALUES (?, ?)", (key, value))
-            conn.commit()
-            conn.close()
-            return jsonify({"output": f"Got it. I've remembered your {key}: {value}."})
-        except:
-            return jsonify({"output": "Sorry, I couldn't remember that. Use: 'Remember my [thing] is [value].'"})
+    # Enhanced memory storage with categories and importance
+    if "remember" in user_input_lower:
+        # Check for category specification
+        category = "general"  # Default category
+        importance = 5  # Default importance (1-10 scale)
+
+        # Check for category tag
+        category_match = re.search(r'\[category:\s*(\w+)\]', user_input)
+        if category_match:
+            category = category_match.group(1).lower()
+            user_input = user_input.replace(category_match.group(0), "").strip()
+            user_input_lower = user_input.lower()
+
+        # Check for importance tag
+        importance_match = re.search(r'\[importance:\s*(\d+)\]', user_input)
+        if importance_match:
+            try:
+                importance = int(importance_match.group(1))
+                importance = max(1, min(10, importance))  # Ensure it's between 1-10
+                user_input = user_input.replace(importance_match.group(0), "").strip()
+                user_input_lower = user_input.lower()
+            except ValueError:
+                pass
+
+        # Process different memory commands
+        if "remember my" in user_input_lower:
+            try:
+                parts = user_input_lower.split("remember my", 1)[1].strip().split(" is ")
+                key = parts[0].strip()
+                value = parts[1].strip()
+
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+
+                # Check if this memory already exists
+                c.execute("SELECT id FROM memories WHERE user_input = ?", (key,))
+                existing = c.fetchone()
+
+                if existing:
+                    # Update existing memory
+                    c.execute("""
+                    UPDATE memories
+                    SET memory = ?, category = ?, importance = ?,
+                        timestamp = CURRENT_TIMESTAMP, access_count = access_count + 1
+                    WHERE id = ?
+                    """, (value, category, importance, existing[0]))
+                    message = f"Updated your {key} to {value} (Category: {category}, Importance: {importance}/10)."
+                else:
+                    # Insert new memory
+                    c.execute("""
+                    INSERT INTO memories
+                    (user_input, memory, category, importance, last_accessed)
+                    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    """, (key, value, category, importance))
+                    message = f"Got it. I've remembered your {key}: {value} (Category: {category}, Importance: {importance}/10)."
+
+                conn.commit()
+                conn.close()
+                return jsonify({"output": message})
+            except Exception as e:
+                return jsonify({"output": f"Sorry, I couldn't remember that. Use: 'Remember my [thing] is [value]'. Error: {str(e)}"})
 
     if "what do you remember" in user_input_lower or "recall" in user_input_lower:
         conn = sqlite3.connect(DB_FILE)
@@ -567,6 +681,230 @@ def voice_settings():
 
         save_json(VOICE_SETTINGS_FILE, settings)
         return jsonify({"message": "Voice settings updated successfully", "settings": settings})
+
+@app.route("/memories", methods=["GET", "POST", "PUT"])
+def manage_memories():
+    if request.method == "GET":
+        # Get query parameters
+        category = request.args.get("category", None)
+        importance = request.args.get("importance", None)
+        limit = int(request.args.get("limit", 50))
+
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+
+        # Update last_accessed timestamp for all retrieved memories
+        current_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+        # Build the query based on filters
+        query = "SELECT id, user_input, memory, category, importance, timestamp FROM memories"
+        params = []
+
+        if category:
+            query += " WHERE category = ?"
+            params.append(category)
+
+        if importance:
+            if category:
+                query += " AND"
+            else:
+                query += " WHERE"
+            query += " importance >= ?"
+            params.append(int(importance))
+
+        # Add ordering by importance (descending) and recency
+        query += " ORDER BY importance DESC, timestamp DESC LIMIT ?"
+        params.append(limit)
+
+        c.execute(query, params)
+        rows = c.fetchall()
+
+        # Update last_accessed for all retrieved memories
+        for row in rows:
+            c.execute("UPDATE memories SET last_accessed = ?, access_count = access_count + 1 WHERE id = ?",
+                     (current_time, row[0]))
+
+        conn.commit()
+
+        # Format memories with metadata
+        memories = []
+        for row in rows:
+            memory_id, key, value, category, importance, timestamp = row
+            memories.append({
+                "id": memory_id,
+                "key": key,
+                "value": value,
+                "category": category,
+                "importance": importance,
+                "timestamp": timestamp
+            })
+
+        # Get categories
+        c.execute("SELECT name, description, color FROM memory_categories")
+        categories = [{
+            "name": row[0],
+            "description": row[1],
+            "color": row[2]
+        } for row in c.fetchall()]
+
+        conn.close()
+
+        return jsonify({
+            "memories": memories,
+            "categories": categories
+        })
+
+    elif request.method == "POST":
+        # Create a new memory
+        data = request.json
+        key = data.get("key")
+        value = data.get("value")
+        category = data.get("category", "general")
+        importance = data.get("importance", 5)
+
+        if not key or not value:
+            return jsonify({"error": "Key and value are required"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+
+        # Check if this memory already exists
+        c.execute("SELECT id FROM memories WHERE user_input = ?", (key,))
+        existing = c.fetchone()
+
+        if existing:
+            # Update existing memory
+            c.execute("""
+            UPDATE memories
+            SET memory = ?, category = ?, importance = ?,
+                timestamp = CURRENT_TIMESTAMP, access_count = access_count + 1
+            WHERE id = ?
+            """, (value, category, importance, existing[0]))
+            message = f"Updated memory: {key}"
+        else:
+            # Insert new memory
+            c.execute("""
+            INSERT INTO memories
+            (user_input, memory, category, importance, last_accessed)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (key, value, category, importance))
+            message = f"Created new memory: {key}"
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": message})
+
+    elif request.method == "PUT":
+        # Update an existing memory
+        data = request.json
+        memory_id = data.get("id")
+
+        if not memory_id:
+            return jsonify({"error": "Memory ID is required"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+
+        # Check if memory exists
+        c.execute("SELECT id FROM memories WHERE id = ?", (memory_id,))
+        if not c.fetchone():
+            conn.close()
+            return jsonify({"error": f"Memory with ID {memory_id} not found"}), 404
+
+        # Build update query
+        update_fields = []
+        params = []
+
+        if "key" in data:
+            update_fields.append("user_input = ?")
+            params.append(data["key"])
+
+        if "value" in data:
+            update_fields.append("memory = ?")
+            params.append(data["value"])
+
+        if "category" in data:
+            update_fields.append("category = ?")
+            params.append(data["category"])
+
+        if "importance" in data:
+            update_fields.append("importance = ?")
+            params.append(data["importance"])
+
+        if not update_fields:
+            conn.close()
+            return jsonify({"error": "No fields to update"}), 400
+
+        # Add timestamp and ID
+        update_fields.append("timestamp = CURRENT_TIMESTAMP")
+        update_fields.append("access_count = access_count + 1")
+
+        # Build and execute query
+        query = f"UPDATE memories SET {', '.join(update_fields)} WHERE id = ?"
+        params.append(memory_id)
+
+        c.execute(query, params)
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": f"Memory {memory_id} updated successfully"})
+
+@app.route("/memories/<int:memory_id>", methods=["DELETE"])
+def delete_memory(memory_id):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    # Check if memory exists
+    c.execute("SELECT id FROM memories WHERE id = ?", (memory_id,))
+    if not c.fetchone():
+        conn.close()
+        return jsonify({"error": f"Memory with ID {memory_id} not found"}), 404
+
+    # Delete the memory
+    c.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": f"Memory {memory_id} deleted successfully"})
+
+@app.route("/memory-categories", methods=["GET", "POST"])
+def manage_memory_categories():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    if request.method == "GET":
+        # Get all categories
+        c.execute("SELECT name, description, color FROM memory_categories")
+        categories = [{
+            "name": row[0],
+            "description": row[1],
+            "color": row[2]
+        } for row in c.fetchall()]
+
+        conn.close()
+        return jsonify({"categories": categories})
+
+    elif request.method == "POST":
+        # Create a new category
+        data = request.json
+        name = data.get("name")
+        description = data.get("description", "")
+        color = data.get("color", "#00f7ff")
+
+        if not name:
+            conn.close()
+            return jsonify({"error": "Category name is required"}), 400
+
+        try:
+            c.execute("INSERT INTO memory_categories (name, description, color) VALUES (?, ?, ?)",
+                     (name, description, color))
+            conn.commit()
+            conn.close()
+            return jsonify({"message": f"Category '{name}' created successfully"})
+        except sqlite3.IntegrityError:
+            conn.close()
+            return jsonify({"error": f"Category '{name}' already exists"}), 400
 
 @app.route("/analyze-emotion", methods=["POST"])
 def analyze_emotion():

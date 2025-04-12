@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGP Memory Management</title>
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f1f1f1;
+      overflow-x: hidden;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+    }
+    
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #00f7ff;
+      text-shadow: 0 0 10px rgba(0, 247, 255, 0.5);
+    }
+    
+    .subtitle {
+      font-size: 1.2em;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+    
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .memory-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .memory-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .memory-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--category-color, #00f7ff);
+    }
+    
+    .memory-key {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    
+    .memory-value {
+      margin-bottom: 15px;
+      color: #ddd;
+    }
+    
+    .memory-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8em;
+      color: #aaa;
+    }
+    
+    .memory-category {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 10px;
+      background-color: var(--category-color, #00f7ff);
+      color: #000;
+      font-weight: bold;
+      font-size: 0.8em;
+      margin-bottom: 10px;
+    }
+    
+    .memory-importance {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .importance-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 3px;
+      background-color: #555;
+    }
+    
+    .importance-dot.active {
+      background-color: #00f7ff;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .filter-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button, select {
+      background-color: rgba(0, 247, 255, 0.2);
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover, select:hover {
+      background-color: rgba(0, 247, 255, 0.4);
+    }
+    
+    .action-buttons {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .memory-card:hover .action-buttons {
+      opacity: 1;
+    }
+    
+    .action-button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      padding: 0;
+    }
+    
+    .edit-button {
+      background-color: #ffcc00;
+    }
+    
+    .delete-button {
+      background-color: #ff3366;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background: rgba(30, 30, 50, 0.95);
+      border-radius: 10px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .modal-header h3 {
+      color: #00f7ff;
+      font-size: 1.5em;
+    }
+    
+    .close-modal {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5em;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .save-button {
+      background-color: #00cc66;
+    }
+    
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 247, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #00f7ff;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+      display: none;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 50px 0;
+      color: #aaa;
+    }
+    
+    .empty-state p {
+      margin-bottom: 20px;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 50px;
+      padding: 20px 0;
+      color: #aaa;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧠 Memory Management</h1>
+      <div class="subtitle">Organize and manage AGP's memory system</div>
+    </header>
+    
+    <div class="controls">
+      <div class="filter-controls">
+        <select id="category-filter">
+          <option value="">All Categories</option>
+          <!-- Categories will be populated by JavaScript -->
+        </select>
+        
+        <select id="importance-filter">
+          <option value="">All Importance Levels</option>
+          <option value="8">Critical (8-10)</option>
+          <option value="5">Medium (5-7)</option>
+          <option value="1">Low (1-4)</option>
+        </select>
+        
+        <button id="apply-filters">Apply Filters</button>
+        <button id="clear-filters">Clear Filters</button>
+      </div>
+      
+      <div>
+        <button id="add-memory" class="add-button">+ Add Memory</button>
+        <button id="add-category" class="add-button">+ Add Category</button>
+        <button onclick="window.location.href='/'">← Back to Chat</button>
+      </div>
+    </div>
+    
+    <div id="memory-grid" class="memory-grid">
+      <!-- Memory cards will be populated by JavaScript -->
+    </div>
+    
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <p>No memories found. Start by adding a new memory or changing your filters.</p>
+      <button id="add-first-memory" class="add-button">+ Add Your First Memory</button>
+    </div>
+    
+    <div class="footer">
+      Powered by <strong>Sentient</strong> 🤖 | Built by <strong>Panchu</strong>
+    </div>
+  </div>
+  
+  <!-- Memory Modal -->
+  <div id="memory-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="memory-modal-title">Add Memory</h3>
+        <button class="close-modal" onclick="closeModal('memory-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="memory-form">
+          <input type="hidden" id="memory-id">
+          
+          <div class="form-group">
+            <label for="memory-key">Key:</label>
+            <input type="text" id="memory-key" placeholder="e.g., name, birthday, favorite color" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="memory-value">Value:</label>
+            <textarea id="memory-value" placeholder="e.g., John, January 1st, blue" required></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="memory-category">Category:</label>
+            <select id="memory-category" required>
+              <!-- Categories will be populated by JavaScript -->
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="memory-importance">Importance (1-10):</label>
+            <input type="range" id="memory-importance" min="1" max="10" value="5">
+            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+              <span>Low</span>
+              <span id="importance-value">5</span>
+              <span>High</span>
+            </div>
+          </div>
+        </form>
+        
+        <div id="memory-loading" class="loading-spinner"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('memory-modal')">Cancel</button>
+        <button id="save-memory" class="save-button">Save</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Category Modal -->
+  <div id="category-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add Category</h3>
+        <button class="close-modal" onclick="closeModal('category-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="category-form">
+          <div class="form-group">
+            <label for="category-name">Name:</label>
+            <input type="text" id="category-name" placeholder="e.g., work, family, preferences" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="category-description">Description:</label>
+            <textarea id="category-description" placeholder="e.g., Work-related memories"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="category-color">Color:</label>
+            <input type="color" id="category-color" value="#00f7ff">
+          </div>
+        </form>
+        
+        <div id="category-loading" class="loading-spinner"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('category-modal')">Cancel</button>
+        <button id="save-category" class="save-button">Save</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Confirm Deletion</h3>
+        <button class="close-modal" onclick="closeModal('confirm-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message">Are you sure you want to delete this memory?</p>
+        <input type="hidden" id="confirm-id">
+        <div id="confirm-loading" class="loading-spinner"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('confirm-modal')">Cancel</button>
+        <button id="confirm-delete" class="delete-button">Delete</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Global variables
+    let memories = [];
+    let categories = [];
+    let currentFilters = {
+      category: '',
+      importance: ''
+    };
+    
+    // DOM elements
+    const memoryGrid = document.getElementById('memory-grid');
+    const emptyState = document.getElementById('empty-state');
+    const categoryFilter = document.getElementById('category-filter');
+    const importanceFilter = document.getElementById('importance-filter');
+    const applyFiltersBtn = document.getElementById('apply-filters');
+    const clearFiltersBtn = document.getElementById('clear-filters');
+    const addMemoryBtn = document.getElementById('add-memory');
+    const addFirstMemoryBtn = document.getElementById('add-first-memory');
+    const addCategoryBtn = document.getElementById('add-category');
+    const saveMemoryBtn = document.getElementById('save-memory');
+    const saveCategoryBtn = document.getElementById('save-category');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+    const memoryImportance = document.getElementById('memory-importance');
+    const importanceValue = document.getElementById('importance-value');
+    
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load memories and categories
+      loadMemories();
+      
+      // Set up event listeners
+      applyFiltersBtn.addEventListener('click', applyFilters);
+      clearFiltersBtn.addEventListener('click', clearFilters);
+      addMemoryBtn.addEventListener('click', () => openMemoryModal());
+      addFirstMemoryBtn.addEventListener('click', () => openMemoryModal());
+      addCategoryBtn.addEventListener('click', openCategoryModal);
+      saveMemoryBtn.addEventListener('click', saveMemory);
+      saveCategoryBtn.addEventListener('click', saveCategory);
+      confirmDeleteBtn.addEventListener('click', confirmDelete);
+      
+      // Set up range slider
+      memoryImportance.addEventListener('input', () => {
+        importanceValue.textContent = memoryImportance.value;
+      });
+    });
+    
+    // Load memories from the server
+    async function loadMemories() {
+      try {
+        const response = await fetch(`/memories?category=${currentFilters.category}&importance=${currentFilters.importance}`);
+        const data = await response.json();
+        
+        memories = data.memories;
+        categories = data.categories;
+        
+        // Populate category filters and dropdowns
+        populateCategoryOptions();
+        
+        // Render memories
+        renderMemories();
+      } catch (error) {
+        console.error('Error loading memories:', error);
+        alert('Failed to load memories. Please try again.');
+      }
+    }
+    
+    // Populate category options in filters and dropdowns
+    function populateCategoryOptions() {
+      // Clear existing options (except the first one)
+      while (categoryFilter.options.length > 1) {
+        categoryFilter.remove(1);
+      }
+      
+      const memoryCategory = document.getElementById('memory-category');
+      memoryCategory.innerHTML = '';
+      
+      // Add categories to filter dropdown
+      categories.forEach(category => {
+        const filterOption = document.createElement('option');
+        filterOption.value = category.name;
+        filterOption.textContent = category.name;
+        categoryFilter.appendChild(filterOption);
+        
+        const memoryOption = document.createElement('option');
+        memoryOption.value = category.name;
+        memoryOption.textContent = category.name;
+        memoryCategory.appendChild(memoryOption);
+      });
+      
+      // Set selected values based on current filters
+      if (currentFilters.category) {
+        categoryFilter.value = currentFilters.category;
+      }
+      
+      if (currentFilters.importance) {
+        importanceFilter.value = currentFilters.importance;
+      }
+    }
+    
+    // Render memories in the grid
+    function renderMemories() {
+      memoryGrid.innerHTML = '';
+      
+      if (memories.length === 0) {
+        memoryGrid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      
+      memoryGrid.style.display = 'grid';
+      emptyState.style.display = 'none';
+      
+      memories.forEach(memory => {
+        const category = categories.find(c => c.name === memory.category) || { color: '#00f7ff' };
+        
+        const card = document.createElement('div');
+        card.className = 'memory-card';
+        card.style.setProperty('--category-color', category.color);
+        
+        // Create importance dots
+        const importanceDots = [];
+        for (let i = 0; i < 10; i++) {
+          importanceDots.push(`<div class="importance-dot ${i < memory.importance ? 'active' : ''}"></div>`);
+        }
+        
+        card.innerHTML = `
+          <div class="memory-category">${memory.category}</div>
+          <div class="memory-key">${memory.key}</div>
+          <div class="memory-value">${memory.value}</div>
+          <div class="memory-importance">
+            ${importanceDots.join('')}
+          </div>
+          <div class="memory-meta">
+            <span>Created: ${new Date(memory.timestamp).toLocaleDateString()}</span>
+            <span>Importance: ${memory.importance}/10</span>
+          </div>
+          <div class="action-buttons">
+            <button class="action-button edit-button" onclick="openMemoryModal(${memory.id})">✏️</button>
+            <button class="action-button delete-button" onclick="openConfirmModal(${memory.id})">🗑️</button>
+          </div>
+        `;
+        
+        memoryGrid.appendChild(card);
+      });
+    }
+    
+    // Apply filters
+    function applyFilters() {
+      currentFilters.category = categoryFilter.value;
+      currentFilters.importance = importanceFilter.value;
+      loadMemories();
+    }
+    
+    // Clear filters
+    function clearFilters() {
+      categoryFilter.value = '';
+      importanceFilter.value = '';
+      currentFilters.category = '';
+      currentFilters.importance = '';
+      loadMemories();
+    }
+    
+    // Open memory modal for adding or editing
+    function openMemoryModal(memoryId = null) {
+      const modal = document.getElementById('memory-modal');
+      const title = document.getElementById('memory-modal-title');
+      const form = document.getElementById('memory-form');
+      const idInput = document.getElementById('memory-id');
+      const keyInput = document.getElementById('memory-key');
+      const valueInput = document.getElementById('memory-value');
+      const categoryInput = document.getElementById('memory-category');
+      const importanceInput = document.getElementById('memory-importance');
+      
+      // Reset form
+      form.reset();
+      
+      if (memoryId) {
+        // Edit existing memory
+        const memory = memories.find(m => m.id === memoryId);
+        if (!memory) return;
+        
+        title.textContent = 'Edit Memory';
+        idInput.value = memory.id;
+        keyInput.value = memory.key;
+        valueInput.value = memory.value;
+        categoryInput.value = memory.category;
+        importanceInput.value = memory.importance;
+        importanceValue.textContent = memory.importance;
+      } else {
+        // Add new memory
+        title.textContent = 'Add Memory';
+        idInput.value = '';
+        importanceInput.value = 5;
+        importanceValue.textContent = 5;
+      }
+      
+      openModal('memory-modal');
+    }
+    
+    // Open category modal
+    function openCategoryModal() {
+      const form = document.getElementById('category-form');
+      form.reset();
+      openModal('category-modal');
+    }
+    
+    // Open confirmation modal
+    function openConfirmModal(memoryId) {
+      const confirmId = document.getElementById('confirm-id');
+      confirmId.value = memoryId;
+      openModal('confirm-modal');
+    }
+    
+    // Save memory
+    async function saveMemory() {
+      const memoryId = document.getElementById('memory-id').value;
+      const key = document.getElementById('memory-key').value;
+      const value = document.getElementById('memory-value').value;
+      const category = document.getElementById('memory-category').value;
+      const importance = parseInt(document.getElementById('memory-importance').value);
+      
+      if (!key || !value || !category) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      
+      const loading = document.getElementById('memory-loading');
+      loading.style.display = 'block';
+      saveMemoryBtn.disabled = true;
+      
+      try {
+        let url = '/memories';
+        let method = 'POST';
+        let data = { key, value, category, importance };
+        
+        if (memoryId) {
+          // Update existing memory
+          method = 'PUT';
+          data.id = parseInt(memoryId);
+        }
+        
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to save memory');
+        }
+        
+        // Reload memories
+        loadMemories();
+        closeModal('memory-modal');
+      } catch (error) {
+        console.error('Error saving memory:', error);
+        alert(error.message || 'Failed to save memory. Please try again.');
+      } finally {
+        loading.style.display = 'none';
+        saveMemoryBtn.disabled = false;
+      }
+    }
+    
+    // Save category
+    async function saveCategory() {
+      const name = document.getElementById('category-name').value;
+      const description = document.getElementById('category-description').value;
+      const color = document.getElementById('category-color').value;
+      
+      if (!name) {
+        alert('Category name is required.');
+        return;
+      }
+      
+      const loading = document.getElementById('category-loading');
+      loading.style.display = 'block';
+      saveCategoryBtn.disabled = true;
+      
+      try {
+        const response = await fetch('/memory-categories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, description, color })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to save category');
+        }
+        
+        // Reload memories to get updated categories
+        loadMemories();
+        closeModal('category-modal');
+      } catch (error) {
+        console.error('Error saving category:', error);
+        alert(error.message || 'Failed to save category. Please try again.');
+      } finally {
+        loading.style.display = 'none';
+        saveCategoryBtn.disabled = false;
+      }
+    }
+    
+    // Confirm delete
+    async function confirmDelete() {
+      const memoryId = document.getElementById('confirm-id').value;
+      if (!memoryId) return;
+      
+      const loading = document.getElementById('confirm-loading');
+      loading.style.display = 'block';
+      confirmDeleteBtn.disabled = true;
+      
+      try {
+        const response = await fetch(`/memories/${memoryId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to delete memory');
+        }
+        
+        // Reload memories
+        loadMemories();
+        closeModal('confirm-modal');
+      } catch (error) {
+        console.error('Error deleting memory:', error);
+        alert(error.message || 'Failed to delete memory. Please try again.');
+      } finally {
+        loading.style.display = 'none';
+        confirmDeleteBtn.disabled = false;
+      }
+    }
+    
+    // Open modal
+    function openModal(modalId) {
+      document.getElementById(modalId).style.display = 'flex';
+    }
+    
+    // Close modal
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+    }
+    
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+      const modals = document.getElementsByClassName('modal');
+      for (let i = 0; i < modals.length; i++) {
+        if (event.target === modals[i]) {
+          closeModal(modals[i].id);
+        }
+      }
+    };
+  </script>
+</body>
+</html>

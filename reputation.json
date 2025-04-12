@@ -572,5 +572,21 @@
     "emotion": "neutral",
     "emotion_intensity": 0.0,
     "score": 0
+  },
+  "a5c2da72-a207-4b84-b6b0-eb803e2dfaa2": {
+    "timestamp": "2025-04-12 17:22:08.977528+00:00",
+    "prompt": "Hi",
+    "response": "Howdy. What\u2019s up? Need anything?",
+    "emotion": "neutral",
+    "emotion_intensity": 0.0,
+    "score": 0
+  },
+  "fd7098f0-2f58-4fdb-86cf-95f7351262c1": {
+    "timestamp": "2025-04-12 17:22:22.280880+00:00",
+    "prompt": "Hi",
+    "response": "Hi, what\u2019s up? Need anything?",
+    "emotion": "neutral",
+    "emotion_intensity": 0.0,
+    "score": 0
   }
 }
